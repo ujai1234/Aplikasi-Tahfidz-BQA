@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+.next/
+out/
+
+# Environment & secrets
+.env
+.env.local
+.env*.local
+
+# Database
+server/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+
+# TypeScript
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini

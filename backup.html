@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backup &amp; Reset · Sistem Tahfidz &amp; Absensi — Pesantren Baitul Qur'an Al-Ikhwan</title>
+  <meta name="description" content="Backup data sistem dan reset data (admin only)." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <input type="checkbox" id="sidebar-toggle" class="sr-only" aria-label="Buka atau tutup menu navigasi" />
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">BQA</div>
+      <div class="brand-text">Baitul Qur'an Al-Ikhwan</div>
+    </div>
+
+    <nav class="nav" aria-label="Navigasi utama">
+      <p class="nav-label">Menu Utama</p>
+
+      <a href="index.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="data-santri.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span>Data Santri</span>
+        <em class="pill-count">245</em>
+      </a>
+
+      <a href="evaluasi.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span>Evaluasi Harian</span>
+      </a>
+
+      <a href="absensi.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Absensi Ustadz</span>
+      </a>
+
+      <a href="tasmi.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+        <span>Ujian Tasmi'</span>
+      </a>
+
+      <p class="nav-label">Manajemen</p>
+
+      <a href="users.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Manajemen User</span>
+      </a>
+
+      <a href="laporan.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+        <span>Laporan &amp; Cetak</span>
+      </a>
+
+      <p class="nav-label">Sistem</p>
+
+      <a href="pengaturan.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        <span>Pengaturan</span>
+      </a>
+
+      <a href="backup.html" class="nav-item active" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span>Backup &amp; Reset</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="session-chip">
+        <span class="live-dot" aria-hidden="true"></span>
+        Sesi <b>Maghrib</b> sedang berlangsung<br />
+        <small>18:00 – 20:00 WIB</small>
+      </div>
+      <a href="login.html" class="logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log Keluar
+      </a>
+    </div>
+  </aside>
+
+  <label for="sidebar-toggle" class="overlay" aria-hidden="true"></label>
+
+  <div class="main">
+
+    <header class="topbar">
+      <label for="sidebar-toggle" class="hamburger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </label>
+
+      <div class="page-title">
+        <h1>Backup &amp; Reset</h1>
+        <p>Assalamu'alaikum, Ahmad Fauzi · Backup data sistem &amp; reset data (admin only)</p>
+      </div>
+
+      <div class="topbar-actions">
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" placeholder="Cari santri, ustadz…" aria-label="Pencarian" />
+        </label>
+
+        <button type="button" class="icon-btn" aria-label="Notifikasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <i class="dot" aria-hidden="true"></i>
+        </button>
+
+        <div class="profile">
+          <span class="avatar">AF</span>
+          <div class="profile-text">
+            <span class="profile-name">Ahmad Fauzi, S.Pd.</span>
+            <span class="profile-role">Administrator</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content stack">
+
+      <div class="grid-even">
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Backup Data</h2>
+              <p>Ekspor seluruh data santri, tasmi', presensi &amp; pengaturan</p>
+            </div>
+            <span class="badge success">Aman</span>
+          </div>
+          <div class="panel-body stack">
+            <p class="note">Backup mencakup tabel <b>master_santri</b>, <b>data_santri</b>, <b>absensi_ustadz</b>, <b>data_tasmi</b>, dan <b>settings</b>. Data user &amp; password tidak ikut diekspor demi keamanan.</p>
+            <div class="row">
+              <button type="button" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Backup ke Excel
+              </button>
+              <button type="button" class="btn btn-ghost">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Backup ke JSON
+              </button>
+            </div>
+            <div class="divider"></div>
+            <div class="table-scroll">
+              <table class="table-narrow">
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Jenis</th>
+                    <th>Ukuran</th>
+                    <th>Oleh</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>24/08/2026</td>
+                    <td><span class="badge success">Excel</span></td>
+                    <td>1.2 MB</td>
+                    <td>Ahmad Fauzi</td>
+                  </tr>
+                  <tr>
+                    <td>17/08/2026</td>
+                    <td><span class="badge success">Excel</span></td>
+                    <td>1.1 MB</td>
+                    <td>Ahmad Fauzi</td>
+                  </tr>
+                  <tr>
+                    <td>10/08/2026</td>
+                    <td><span class="badge info">JSON</span></td>
+                    <td>860 KB</td>
+                    <td>Ahmad Fauzi</td>
+                  </tr>
+                  <tr>
+                    <td>03/08/2026</td>
+                    <td><span class="badge success">Excel</span></td>
+                    <td>1.0 MB</td>
+                    <td>Ahmad Fauzi</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Reset Data</h2>
+              <p>Hapus seluruh data operasional — permanen</p>
+            </div>
+            <span class="badge danger">Bahaya</span>
+          </div>
+          <div class="panel-body stack">
+            <div class="banner danger">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span><b>Tindakan ini tidak dapat dibatalkan.</b> Lakukan backup terlebih dahulu sebelum mereset data.</span>
+            </div>
+
+            <div class="field-stack">
+              <label class="check-item">
+                <input type="checkbox" />
+                Data santri &amp; riwayat evaluasi <b>(245 santri · 1.904 catatan)</b>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" />
+                Data ujian tasmi' <b>(128 hasil ujian)</b>
+              </label>
+              <label class="check-item">
+                <input type="checkbox" />
+                Presensi ustadz <b>(1.904 catatan)</b>
+              </label>
+            </div>
+            <p class="note">Akun user &amp; pengaturan sistem tetap tersimpan.</p>
+
+            <div class="field">
+              <label for="konfirmasi">Konfirmasi <span class="req">*</span></label>
+              <input id="konfirmasi" type="text" placeholder='Ketik "RESET" untuk mengaktifkan tombol' />
+            </div>
+
+            <button type="button" class="btn btn-danger btn-lg btn-block" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Reset Semua Data
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Log Aktivitas Terbaru</h2>
+            <p>Audit trail — siapa melakukan apa</p>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Waktu</th>
+                <th>User</th>
+                <th>Aktivitas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>25/08/2026 · 18:31</td>
+                <td>Ust. Syafiq</td>
+                <td>Presensi Maghrib — 480 m dari pesantren</td>
+              </tr>
+              <tr>
+                <td>25/08/2026 · 18:12</td>
+                <td>Ust. Ali Ridho</td>
+                <td>Presensi Maghrib — 310 m dari pesantren</td>
+              </tr>
+              <tr>
+                <td>25/08/2026 · 17:58</td>
+                <td>Ahmad Fauzi</td>
+                <td>Override presensi Ust. Hasan Basri (sesi Maghrib)</td>
+              </tr>
+              <tr>
+                <td>25/08/2026 · 06:40</td>
+                <td>Ustzh. Maryam S.</td>
+                <td>Input evaluasi harian — 12 santri (An-Nahl)</td>
+              </tr>
+              <tr>
+                <td>24/08/2026 · 21:00</td>
+                <td>Ahmad Fauzi</td>
+                <td>Backup data — Excel (1.2 MB)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-foot">
+          <span>Menampilkan 1–5 dari 3.412 log aktivitas</span>
+          <div class="pager">
+            <a href="#" aria-label="Sebelumnya">‹</a>
+            <a href="#" class="active">1</a>
+            <a href="#">2</a>
+            <a href="#">3</a>
+            <a href="#" aria-label="Selanjutnya">›</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      © 2026 Pesantren Baitul Qur'an Al-Ikhwan · Sistem Tahfidz &amp; Absensi Ustadz · v1.0
+    </footer>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard · Sistem Tahfidz &amp; Absensi — Pesantren Baitul Qur'an Al-Ikhwan</title>
+  <meta name="description" content="Halaman utama Sistem Manajemen Pesantren: manajemen hafalan (Tahfidz) dan absensi ustadz." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <input type="checkbox" id="sidebar-toggle" class="sr-only" aria-label="Buka atau tutup menu navigasi" />
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">BQA</div>
+      <div class="brand-text">Baitul Qur'an Al-Ikhwan</div>
+    </div>
+
+    <nav class="nav" aria-label="Navigasi utama">
+      <p class="nav-label">Menu Utama</p>
+
+      <a href="index.html" class="nav-item active" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="data-santri.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span>Data Santri</span>
+        <em class="pill-count">245</em>
+      </a>
+
+      <a href="evaluasi.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span>Evaluasi Harian</span>
+      </a>
+
+      <a href="absensi.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Absensi Ustadz</span>
+      </a>
+
+      <a href="tasmi.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+        <span>Ujian Tasmi'</span>
+      </a>
+
+      <p class="nav-label">Manajemen</p>
+
+      <a href="users.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Manajemen User</span>
+      </a>
+
+      <a href="laporan.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+        <span>Laporan &amp; Cetak</span>
+      </a>
+
+      <p class="nav-label">Sistem</p>
+
+      <a href="pengaturan.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        <span>Pengaturan</span>
+      </a>
+
+      <a href="backup.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span>Backup &amp; Reset</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="session-chip">
+        <span class="live-dot" aria-hidden="true"></span>
+        Sesi <b>Maghrib</b> sedang berlangsung<br />
+        <small>18:00 – 20:00 WIB</small>
+      </div>
+      <a href="login.html" class="logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log Keluar
+      </a>
+    </div>
+  </aside>
+
+  <label for="sidebar-toggle" class="overlay" aria-hidden="true"></label>
+
+  <div class="main">
+
+    <header class="topbar">
+      <label for="sidebar-toggle" class="hamburger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </label>
+
+      <div class="page-title">
+        <h1>Dashboard</h1>
+        <p>Assalamu'alaikum, Ahmad Fauzi · Selasa, 25 Agustus 2026</p>
+      </div>
+
+      <div class="topbar-actions">
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" placeholder="Cari santri, ustadz…" aria-label="Pencarian" />
+        </label>
+
+        <button type="button" class="icon-btn" aria-label="Notifikasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <i class="dot" aria-hidden="true"></i>
+        </button>
+
+        <div class="profile">
+          <span class="avatar">AF</span>
+          <div class="profile-text">
+            <span class="profile-name">Ahmad Fauzi, S.Pd.</span>
+            <span class="profile-role">Administrator</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <section class="stats" aria-label="Ringkasan statistik">
+        <article class="stat">
+          <div class="stat-top">
+            <span class="stat-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </span>
+          </div>
+          <div>
+            <span class="stat-num">245</span>
+            <span class="stat-label">Total Santri Aktif</span>
+          </div>
+          <p class="stat-foot">+12 santri baru bulan ini</p>
+        </article>
+
+        <article class="stat">
+          <div class="stat-top">
+            <span class="stat-icon success">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+            </span>
+          </div>
+          <div>
+            <span class="stat-num">98</span>
+            <span class="stat-label">Tuntas</span>
+          </div>
+          <div class="stat-bar success"><i style="width:40%"></i></div>
+          <p class="stat-foot">40% dari total santri</p>
+        </article>
+
+        <article class="stat">
+          <div class="stat-top">
+            <span class="stat-icon warning">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+          </div>
+          <div>
+            <span class="stat-num">112</span>
+            <span class="stat-label">Sedang Proses</span>
+          </div>
+          <div class="stat-bar warning"><i style="width:46%"></i></div>
+          <p class="stat-foot">46% dari total santri</p>
+        </article>
+
+        <article class="stat">
+          <div class="stat-top">
+            <span class="stat-icon danger">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </span>
+          </div>
+          <div>
+            <span class="stat-num">35</span>
+            <span class="stat-label">Recovery</span>
+          </div>
+          <div class="stat-bar danger"><i style="width:14%"></i></div>
+          <p class="stat-foot">14% dari total santri</p>
+        </article>
+
+        <article class="stat">
+          <div class="stat-top">
+            <span class="stat-icon info">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+          </div>
+          <div>
+            <span class="stat-num">18<span class="stat-of">/24</span></span>
+            <span class="stat-label">Presensi Hari Ini</span>
+          </div>
+          <p class="stat-foot">Subuh 12 · Maghrib 6</p>
+        </article>
+      </section>
+
+      <section class="grid-charts" aria-label="Grafik capaian">
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Persentase Capaian per Halqah</h2>
+              <p>Rata-rata capaian hafalan pekan ini</p>
+            </div>
+            <a href="laporan.html" class="link-more">Lihat detail</a>
+          </div>
+          <div class="panel-body">
+            <div class="chart-bars" role="img" aria-label="Diagram batang capaian per halqah: Al-Fatih 85 persen, Maryam 91, Thaha 76, Al-Baqarah 72, An-Nahl 64, Yasin 58">
+              <div class="bar-col">
+                <div class="bar-zone">
+                  <span class="bar-val">85%</span>
+                  <div class="bar" style="--v:85"></div>
+                </div>
+                <span class="bar-name">Al-Fatih</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-zone">
+                  <span class="bar-val">91%</span>
+                  <div class="bar" style="--v:91"></div>
+                </div>
+                <span class="bar-name">Maryam</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-zone">
+                  <span class="bar-val">76%</span>
+                  <div class="bar" style="--v:76"></div>
+                </div>
+                <span class="bar-name">Thaha</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-zone">
+                  <span class="bar-val">72%</span>
+                  <div class="bar" style="--v:72"></div>
+                </div>
+                <span class="bar-name">Al-Baqarah</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-zone">
+                  <span class="bar-val">64%</span>
+                  <div class="bar" style="--v:64"></div>
+                </div>
+                <span class="bar-name">An-Nahl</span>
+              </div>
+              <div class="bar-col">
+                <div class="bar-zone">
+                  <span class="bar-val">58%</span>
+                  <div class="bar" style="--v:58"></div>
+                </div>
+                <span class="bar-name">Yasin</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Distribusi Santri per Halqah</h2>
+              <p>Total 245 santri aktif</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="donut-wrap">
+              <div class="donut" role="img" aria-label="Diagram lingkaran distribusi santri per halqah">
+                <div class="donut-center">
+                  <b>245</b>
+                  <span>Santri</span>
+                </div>
+              </div>
+              <ul class="legend">
+                <li><i style="background:#0e7c5a"></i> Al-Fatih <b>52</b><small>21%</small></li>
+                <li><i style="background:#2aa876"></i> Al-Baqarah <b>48</b><small>20%</small></li>
+                <li><i style="background:#e9b949"></i> An-Nahl <b>45</b><small>18%</small></li>
+                <li><i style="background:#3b82f6"></i> Maryam <b>40</b><small>16%</small></li>
+                <li><i style="background:#8b5cf6"></i> Yasin <b>35</b><small>14%</small></li>
+                <li><i style="background:#e05252"></i> Thaha <b>25</b><small>10%</small></li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Sesi Presensi Hari Ini</h2>
+              <p>Jadwal berlaku Senin – Jumat</p>
+            </div>
+          </div>
+          <div class="panel-body sessions">
+            <div class="session-row">
+              <div>
+                <span class="session-time">Sesi Subuh</span>
+                <span class="session-range">04:30 – 06:00 WIB</span>
+              </div>
+              <span class="badge closed">Ditutup</span>
+              <span class="session-meta"><b>12</b> ustadz hadir</span>
+            </div>
+            <div class="session-row">
+              <div>
+                <span class="session-time">Sesi Maghrib</span>
+                <span class="session-range">18:00 – 20:00 WIB</span>
+              </div>
+              <span class="badge open"><i class="live-dot" aria-hidden="true"></i>Berlangsung</span>
+              <span class="session-meta"><b>6</b> ustadz hadir</span>
+            </div>
+            <p class="note-line">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Radius validasi presensi ≤ 500 m dari koordinat pesantren. Hari Jumat: sesi khusus 04:30 – 21:00.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid-tables" aria-label="Data terkini">
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Santri Perlu Perhatian</h2>
+              <p>Status recovery &amp; kendala hafalan terbaru</p>
+            </div>
+            <a href="data-santri.html" class="link-more">Lihat semua</a>
+          </div>
+          <div class="panel-body table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Santri</th>
+                  <th>Halqah</th>
+                  <th>Tingkat</th>
+                  <th>Status</th>
+                  <th>Kendala</th>
+                  <th>Target</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <span class="cell-user">
+                      <span class="mini-avatar">AH</span>
+                      <span>Abdurrahman Hakim<em class="td-sub">NIS 2401</em></span>
+                    </span>
+                  </td>
+                  <td>Al-Fatih</td>
+                  <td>3</td>
+                  <td><span class="badge danger">Recovery</span></td>
+                  <td>Hafalan terbata-bata</td>
+                  <td>Juz 30</td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="cell-user">
+                      <span class="mini-avatar">ZA</span>
+                      <span>Zaid Abdullah<em class="td-sub">NIS 2407</em></span>
+                    </span>
+                  </td>
+                  <td>An-Nahl</td>
+                  <td>2</td>
+                  <td><span class="badge warning">Sedang</span></td>
+                  <td>Kurang fokus saat setoran</td>
+                  <td>Juz 29</td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="cell-user">
+                      <span class="mini-avatar">FG</span>
+                      <span>Fatih Al-Ghifari<em class="td-sub">NIS 2318</em></span>
+                    </span>
+                  </td>
+                  <td>Yasin</td>
+                  <td>4</td>
+                  <td><span class="badge danger">Recovery</span></td>
+                  <td>Sering izin tidak masuk</td>
+                  <td>Juz 28</td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="cell-user">
+                      <span class="mini-avatar">IM</span>
+                      <span>Ibrahim Musa<em class="td-sub">NIS 2412</em></span>
+                    </span>
+                  </td>
+                  <td>Al-Baqarah</td>
+                  <td>1</td>
+                  <td><span class="badge info">Perlu Pantauan</span></td>
+                  <td>Adaptasi jadwal baru</td>
+                  <td>Juz 30</td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="cell-user">
+                      <span class="mini-avatar">US</span>
+                      <span>Umar Sayyid<em class="td-sub">NIS 2305</em></span>
+                    </span>
+                  </td>
+                  <td>Maryam</td>
+                  <td>3</td>
+                  <td><span class="badge warning">Sedang</span></td>
+                  <td>Target pekanan tertunda</td>
+                  <td>Juz 27</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Presensi Terbaru</h2>
+              <p>Kehadiran ustadz dengan validasi GPS</p>
+            </div>
+            <a href="absensi.html" class="link-more">Riwayat lengkap</a>
+          </div>
+          <div class="panel-body table-scroll">
+            <table class="table-narrow">
+              <thead>
+                <tr>
+                  <th>Nama</th>
+                  <th>Sesi</th>
+                  <th>Jam</th>
+                  <th>Jarak</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="cell-user"><span class="mini-avatar">HB</span><span>Ust. Hasan Basri<em class="td-sub">Al-Fatih</em></span></span></td>
+                  <td>Subuh</td>
+                  <td>04:52</td>
+                  <td>120 m</td>
+                  <td><span class="badge success">Hadir</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-user"><span class="mini-avatar">MS</span><span>Ustzh. Maryam S.<em class="td-sub">An-Nahl</em></span></span></td>
+                  <td>Subuh</td>
+                  <td>04:47</td>
+                  <td>85 m</td>
+                  <td><span class="badge success">Hadir</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-user"><span class="mini-avatar">AR</span><span>Ust. Ali Ridho<em class="td-sub">Yasin</em></span></span></td>
+                  <td>Maghrib</td>
+                  <td>18:12</td>
+                  <td>310 m</td>
+                  <td><span class="badge success">Hadir</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-user"><span class="mini-avatar">KA</span><span>Ustzh. Khadijah<em class="td-sub">Thaha</em></span></span></td>
+                  <td>Subuh</td>
+                  <td>—</td>
+                  <td>—</td>
+                  <td><span class="badge warning">Izin</span></td>
+                </tr>
+                <tr>
+                  <td><span class="cell-user"><span class="mini-avatar">SY</span><span>Ust. Syafiq<em class="td-sub">Al-Baqarah</em></span></span></td>
+                  <td>Maghrib</td>
+                  <td>18:31</td>
+                  <td>480 m</td>
+                  <td><span class="badge success">Hadir</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer">
+      © 2026 Pesantren Baitul Qur'an Al-Ikhwan · Sistem Tahfidz &amp; Absensi Ustadz · v1.0
+    </footer>
+  </div>
+
+</body>
+</html>

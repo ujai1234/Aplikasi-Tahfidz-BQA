@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ujian Tasmi' · Sistem Tahfidz &amp; Absensi — Pesantren Baitul Qur'an Al-Ikhwan</title>
+  <meta name="description" content="Input nilai ujian tasmi' dan rekapitulasi kelulusan." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <input type="checkbox" id="sidebar-toggle" class="sr-only" aria-label="Buka atau tutup menu navigasi" />
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">BQA</div>
+      <div class="brand-text">Baitul Qur'an Al-Ikhwan</div>
+    </div>
+
+    <nav class="nav" aria-label="Navigasi utama">
+      <p class="nav-label">Menu Utama</p>
+
+      <a href="index.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="data-santri.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span>Data Santri</span>
+        <em class="pill-count">245</em>
+      </a>
+
+      <a href="evaluasi.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span>Evaluasi Harian</span>
+      </a>
+
+      <a href="absensi.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Absensi Ustadz</span>
+      </a>
+
+      <a href="tasmi.html" class="nav-item active" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+        <span>Ujian Tasmi'</span>
+      </a>
+
+      <p class="nav-label">Manajemen</p>
+
+      <a href="users.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Manajemen User</span>
+      </a>
+
+      <a href="laporan.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+        <span>Laporan &amp; Cetak</span>
+      </a>
+
+      <p class="nav-label">Sistem</p>
+
+      <a href="pengaturan.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        <span>Pengaturan</span>
+      </a>
+
+      <a href="backup.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span>Backup &amp; Reset</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="session-chip">
+        <span class="live-dot" aria-hidden="true"></span>
+        Sesi <b>Maghrib</b> sedang berlangsung<br />
+        <small>18:00 – 20:00 WIB</small>
+      </div>
+      <a href="login.html" class="logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log Keluar
+      </a>
+    </div>
+  </aside>
+
+  <label for="sidebar-toggle" class="overlay" aria-hidden="true"></label>
+
+  <div class="main">
+
+    <header class="topbar">
+      <label for="sidebar-toggle" class="hamburger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </label>
+
+      <div class="page-title">
+        <h1>Ujian Tasmi'</h1>
+        <p>Assalamu'alaikum, Ahmad Fauzi · Input nilai &amp; rekapitulasi ujian hafalan</p>
+      </div>
+
+      <div class="topbar-actions">
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" placeholder="Cari santri, ustadz…" aria-label="Pencarian" />
+        </label>
+
+        <button type="button" class="icon-btn" aria-label="Notifikasi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <i class="dot" aria-hidden="true"></i>
+        </button>
+
+        <div class="profile">
+          <span class="avatar">AF</span>
+          <div class="profile-text">
+            <span class="profile-name">Ahmad Fauzi, S.Pd.</span>
+            <span class="profile-role">Administrator</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content stack">
+
+      <div class="chips">
+        <span class="chip">Total Ujian <b>128</b></span>
+        <span class="chip">Lulus <b>104</b> · 81%</span>
+        <span class="chip">Rata-rata Nilai <b>82.4</b></span>
+        <span class="chip">Predikat Mumtaz <b>46</b></span>
+      </div>
+
+      <div class="grid-2">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Input Nilai Tasmi'</h2>
+              <p>Nilai 0–100 · predikat &amp; kelulusan ditentukan otomatis</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <form class="form-grid">
+              <div class="field">
+                <label for="tgl">Tanggal Ujian <span class="req">*</span></label>
+                <input id="tgl" type="date" value="2026-08-25" />
+              </div>
+              <div class="field">
+                <label for="santri">Nama Santri <span class="req">*</span></label>
+                <select id="santri">
+                  <option selected>Aisyah Rahmadani — NIS 2402</option>
+                  <option>Abdurrahman Hakim — NIS 2401</option>
+                  <option>Yusuf Al-Qardhawi — NIS 2419</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="halqah">Halqah (otomatis)</label>
+                <select id="halqah" disabled>
+                  <option selected>Al-Fatih</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="tingkat">Tingkatan (otomatis)</label>
+                <select id="tingkat" disabled>
+                  <option selected>Tingkat 2</option>
+                </select>
+              </div>
+              <div class="field span-2">
+                <label>Jenis Tasmi' <span class="req">*</span></label>
+                <div class="pills">
+                  <label><input type="radio" name="jenis" checked />Pekanan (Jumat)</label>
+                  <label><input type="radio" name="jenis" />Per 3 Bulan</label>
+                  <label><input type="radio" name="jenis" />Per 6 Bulan (Semester)</label>
+                </div>
+              </div>
+              <div class="field">
+                <label for="nilai">Nilai (0–100) <span class="req">*</span></label>
+                <input id="nilai" type="number" min="0" max="100" value="88" />
+                <small class="hint">Predikat otomatis: <b>Jayyid Jiddan</b> · Status: <b>Lulus</b></small>
+              </div>
+              <div class="field">
+                <label for="penguji">Penguji</label>
+                <select id="penguji">
+                  <option selected>Ust. Hasan Basri</option>
+                  <option>Ustzh. Maryam Shaleha</option>
+                  <option>Ust. Ali Ridho</option>
+                </select>
+              </div>
+              <div class="field span-2">
+                <label for="catatan">Catatan Penguji</label>
+                <textarea id="catatan" placeholder="Catatan hasil ujian tasmi'…"></textarea>
+              </div>
+              <div class="form-actions span-2">
+                <button type="reset" class="btn btn-ghost">Batal</button>
+                <button type="submit" class="btn btn-primary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  Simpan Nilai Tasmi'
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Ketentuan Predikat</h2>
+              <p>Penentuan otomatis berdasarkan nilai</p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <ul class="pred-list">
+              <li>
+                <span class="range">90–100</span>
+                Mumtaz
+                <span class="badge success">Lulus</span>
+                <span class="ar">ممتاز</span>
+              </li>
+              <li>
+                <span class="range">80–89</span>
+                Jayyid Jiddan
+                <span class="badge success">Lulus</span>
+                <span class="ar">جيد جداً</span>
+              </li>
+              <li>
+                <span class="range">70–79</span>
+                Jayyid
+                <span class="badge success">Lulus</span>
+                <span class="ar">جيد</span>
+              </li>
+              <li>
+                <span class="range">&lt; 70</span>
+                Rasib
+                <span class="badge danger">Tidak Lulus</span>
+                <span class="ar">راسب</span>
+              </li>
+            </ul>
+            <div class="divider"></div>
+            <p class="note"><b>KKM 70</b> — santri dengan nilai ≥ 70 dinyatakan <b>LULUS</b> pada tahapan tasmi' yang diikuti. Rekapitulasi dapat difilter per santri/halqah dan dicetak melalui menu Laporan.</p>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Rekapitulasi Tasmi'</h2>
+            <p>Seluruh hasil ujian tasmi' santri</p>
+          </div>
+          <div class="row">
+            <a href="laporan.html" class="btn btn-ghost">Cetak</a>
+            <a href="laporan.html" class="btn btn-ghost">Export</a>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <select aria-label="Filter halqah">
+            <option>Semua Halqah</option>
+            <option>Al-Fatih</option>
+            <option>An-Nahl</option>
+            <option>Maryam</option>
+            <option>Yasin</option>
+            <option>Thaha</option>
+          </select>
+          <select aria-label="Filter jenis tasmi">
+            <option>Semua Jenis</option>
+            <option>Pekanan (Jumat)</option>
+            <option>Per 3 Bulan</option>
+            <option>Per 6 Bulan</option>
+          </select>
+          <select aria-label="Filter kelulusan">
+            <option>Semua Kelulusan</option>
+            <option>Lulus</option>
+            <option>Tidak Lulus</option>
+          </select>
+          <label class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" placeholder="Cari nama santri…" aria-label="Cari rekap tasmi" />
+          </label>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Santri</th>
+                <th>Halqah</th>
+                <th>Jenis</th>
+                <th>Nilai</th>
+                <th>Predikat</th>
+                <th>Kelulusan</th>
+                <th>Penguji</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>21/08/2026</td>
+                <td>Aisyah Rahmadani<em class="td-sub">NIS 2402</em></td>
+                <td>Al-Fatih</td>
+                <td>Pekanan</td>
+                <td><b>92</b></td>
+                <td><span class="badge success">Mumtaz</span></td>
+                <td><span class="badge success">Lulus</span></td>
+                <td>Ust. Hasan Basri</td>
+              </tr>
+              <tr>
+                <td>21/08/2026</td>
+                <td>Zaid Abdullah<em class="td-sub">NIS 2407</em></td>
+                <td>An-Nahl</td>
+                <td>Pekanan</td>
+                <td><b>84</b></td>
+                <td><span class="badge info">Jayyid Jiddan</span></td>
+                <td><span class="badge success">Lulus</span></td>
+                <td>Ustzh. Maryam S.</td>
+              </tr>
+              <tr>
+                <td>21/08/2026</td>
+                <td>Umar Sayyid<em class="td-sub">NIS 2305</em></td>
+                <td>Maryam</td>
+                <td>Pekanan</td>
+                <td><b>76</b></td>
+                <td><span class="badge warning">Jayyid</span></td>
+                <td><span class="badge success">Lulus</span></td>
+                <td>Ustzh. Halimah</td>
+              </tr>
+              <tr>
+                <td>14/08/2026</td>
+                <td>Abdurrahman Hakim<em class="td-sub">NIS 2401</em></td>
+                <td>Al-Fatih</td>
+                <td>Pekanan</td>
+                <td><b>65</b></td>
+                <td><span class="badge danger">Rasib</span></td>
+                <td><span class="badge danger">Tidak Lulus</span></td>
+                <td>Ust. Hasan Basri</td>
+              </tr>
+              <tr>
+                <td>30/06/2026</td>
+                <td>Fatih Al-Ghifari<em class="td-sub">NIS 2318</em></td>
+                <td>Yasin</td>
+                <td>Per 3 Bulan</td>
+                <td><b>88</b></td>
+                <td><span class="badge info">Jayyid Jiddan</span></td>
+                <td><span class="badge success">Lulus</span></td>
+                <td>Ust. Ali Ridho</td>
+              </tr>
+              <tr>
+                <td>30/06/2026</td>
+                <td>Khadijah Az-Zahra<em class="td-sub">NIS 2311</em></td>
+                <td>Thaha</td>
+                <td>Per 6 Bulan</td>
+                <td><b>95</b></td>
+                <td><span class="badge success">Mumtaz</span></td>
+                <td><span class="badge success">Lulus</span></td>
+                <td>Ust. Ridwan</td>
+              </tr>
+              <tr>
+                <td>14/08/2026</td>
+                <td>Ibrahim Musa<em class="td-sub">NIS 2412</em></td>
+                <td>Al-Baqarah</td>
+                <td>Pekanan</td>
+                <td><b>58</b></td>
+                <td><span class="badge danger">Rasib</span></td>
+                <td><span class="badge danger">Tidak Lulus</span></td>
+                <td>Ust. Syafiq</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-foot">
+          <span>Menampilkan 1–7 dari 128 hasil ujian</span>
+          <div class="pager">
+            <a href="#" aria-label="Sebelumnya">‹</a>
+            <a href="#" class="active">1</a>
+            <a href="#">2</a>
+            <a href="#">3</a>
+            <a href="#" aria-label="Selanjutnya">›</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      © 2026 Pesantren Baitul Qur'an Al-Ikhwan · Sistem Tahfidz &amp; Absensi Ustadz · v1.0
+    </footer>
+  </div>
+
+</body>
+</html>
