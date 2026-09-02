@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import type { Role } from "../db/schema";
+export type Role = "Admin" | "Ustadz" | "Ustadzah" | "Kepsek";
 import { env } from "../env";
 
 export interface JwtUser {
@@ -20,7 +20,7 @@ export function verifyPassword(plain: string, hash: string): boolean {
 }
 
 export function signToken(user: JwtUser): string {
-  return jwt.sign(user, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
+  return jwt.sign(user, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as any });
 }
 
 export function verifyToken(token: string): JwtUser | null {

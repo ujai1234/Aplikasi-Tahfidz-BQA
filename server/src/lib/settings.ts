@@ -17,6 +17,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   evaluasi_subuh_selesai: "07:00",
   evaluasi_maghrib_mulai: "18:30",
   evaluasi_maghrib_selesai: "20:30",
+  tasmi_unlock_periodic: "0",
 };
 
 export const SETTING_KEYS = Object.keys(SETTING_DEFAULTS);
@@ -117,3 +118,39 @@ export function jarakDariPesantren(latitude: number, longitude: number): {
   );
   return { jarakMeter, radiusMeter, dalamRadius: jarakMeter <= radiusMeter };
 }
+
+export function checkTasmiWindow(
+  jenisTasmi: "Pekanan" | "Per 3 Bulan" | "Per 6 Bulan",
+  userRole?: string,
+  now = wibParts()
+): { open: boolean; reason: string | null } {
+  const s = getSettings();
+  const isFriday = now.day === 5;
+  const isPeriodic = jenisTasmi === "Per 3 Bulan" || jenisTasmi === "Per 6 Bulan";
+
+  if (isFriday) {
+    return { open: true, reason: null };
+  }
+
+  if (userRole === "Admin") {
+    return { open: true, reason: null };
+  }
+
+  if (!isPeriodic) {
+    return {
+      open: false,
+      reason: "Input Ujian Tasmi' Pekanan hanya dibuka pada hari Jumat.",
+    };
+  }
+
+  if (s.tasmi_unlock_periodic === "1") {
+    return { open: true, reason: null };
+  }
+
+  return {
+    open: false,
+    reason:
+      "Input Ujian Tasmi' Per 3 Bulan & Per 6 Bulan di luar hari Jumat terkunci. Hubungi Admin untuk membuka kunci di Pengaturan.",
+  };
+}
+

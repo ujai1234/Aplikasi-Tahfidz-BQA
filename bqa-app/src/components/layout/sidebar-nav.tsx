@@ -3,11 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { BookOpen, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { NAV_GROUPS } from "@/lib/nav";
 import { useAuth } from "@/components/providers/auth-provider";
-import { cn } from "@/lib/utils";
+import { cn, initialsOf } from "@/lib/utils";
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -29,80 +29,101 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     router.push("/login");
   };
 
+  const userInitials = initialsOf(user?.nama ?? "User");
+  const userScope = user?.halqah ? `${user.role} (${user.halqah})` : user?.role ?? "User";
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 border-b border-white/10 px-1 pb-4">
-        <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-white p-1 shadow-sm">
-          <Image
-            src="/logobqa.jpg"
-            alt="Logo BQA"
-            width={48}
-            height={48}
-            className="size-full object-contain"
-            priority
-          />
-        </span>
-        <div className="min-w-0 leading-tight">
-          <p className="font-display text-[13.5px] font-bold text-white">
-            Aplikasi Tahfidz
-          </p>
-          <p className="mt-0.5 text-[10.5px] font-medium leading-snug text-white/65">
-            Pondok Pesantren Baitul Qur&apos;an Al-Ikhwan
-          </p>
+    <div className="flex h-full flex-col justify-between">
+      <div>
+        {/* Brand Header */}
+        <div className="flex items-center gap-3 border-b border-white/10 px-2 pb-4">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white shadow-md">
+            <BookOpen className="size-5" />
+          </span>
+          <div className="min-w-0 leading-tight">
+            <p className="font-display text-[15px] font-extrabold text-white tracking-wide">
+              Tahfidz App
+            </p>
+            <p className="mt-0.5 text-[11px] font-medium text-slate-300">
+              Baitul Qur&apos;an Al-Ikhwan
+            </p>
+          </div>
         </div>
+
+        {/* Navigation Groups */}
+        <nav
+          aria-label="Navigasi utama"
+          className="space-y-1 overflow-y-auto py-4"
+        >
+          {groups.map((group) => (
+            <div key={group.title} className="mb-4">
+              <p className="mb-2 px-3 text-[10.5px] font-bold tracking-[0.14em] text-slate-400 uppercase">
+                {group.title}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const active =
+                    item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      onClick={onNavigate}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-semibold transition-all duration-200",
+                        active
+                          ? "bg-emerald-600 text-white shadow-md font-bold"
+                          : "text-slate-200 hover:bg-white/10 hover:text-white"
+                      )}
+                    >
+                      <item.icon className="size-[18px] shrink-0" strokeWidth={active ? 2.2 : 1.9} />
+                      <span>{item.label}</span>
+                      {item.badge ? (
+                        <span className="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-[10.5px] font-extrabold text-slate-900">
+                          {item.badge}
+                        </span>
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
       </div>
 
-      <nav
-        aria-label="Navigasi utama"
-        className="flex-1 space-y-0.5 overflow-y-auto py-3.5"
-      >
-        {groups.map((group) => (
-          <div key={group.title}>
-            <p className="mb-1.5 mt-3.5 px-2.5 text-[10.5px] font-bold tracking-[0.14em] text-white/65 uppercase">
-              {group.title}
-            </p>
-            {group.items.map((item) => {
-              const active =
-                item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  onClick={onNavigate}
-                  className={cn(
-                    "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200",
-                    active
-                      ? "bg-white/15 text-white shadow-sm before:absolute before:-left-5 before:top-1/2 before:h-5.5 before:w-1 before:-translate-y-1/2 before:rounded-r before:bg-gold before:content-['']"
-                      : "text-white/90 hover:translate-x-0.5 hover:bg-white/10 hover:text-white"
-                  )}
-                >
-                  <item.icon className="size-[19px] shrink-0" strokeWidth={1.9} />
-                  <span>{item.label}</span>
-                  {item.badge ? (
-                    <span className="ml-auto rounded-full bg-gold px-2 py-0.5 text-[11px] font-extrabold text-[#3c2c07]">
-                      {item.badge}
-                    </span>
-                  ) : null}
-                </Link>
-              );
-            })}
+      {/* User Profile Card at bottom matching screenshot */}
+      <div className="border-t border-white/10 pt-4 mt-auto">
+        <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-3 shadow-inner">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-900/80 text-emerald-300 font-bold border border-emerald-500/30 text-xs">
+              {userInitials}
+            </div>
+            <div className="min-w-0 flex-1 leading-tight">
+              <p className="truncate text-[13px] font-bold text-white">
+                {user?.nama ?? "Ustadz"}
+              </p>
+              <p className="truncate text-[11px] font-medium text-emerald-400/90 mt-0.5">
+                {userScope}
+              </p>
+              {user?.email && (
+                <p className="truncate text-[10.5px] text-slate-400 mt-0.5">
+                  {user.email}
+                </p>
+              )}
+            </div>
           </div>
-        ))}
-      </nav>
 
-      <div className="grid gap-2.5 border-t border-white/10 pt-4">
-        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[11px] leading-relaxed font-medium text-white/70">
-          Sesi presensi · Subuh 04:30–06:00 · Maghrib 18:00–20:00 WIB
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 py-2 text-xs font-bold text-slate-200 transition-all hover:border-rose-500/40 hover:bg-rose-500/20 hover:text-rose-200 shadow-2xs"
+          >
+            <LogOut className="size-3.5" strokeWidth={2} />
+            <span>Keluar Sistem</span>
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 px-3 py-2.5 text-[13.5px] font-bold text-white transition-colors hover:border-danger/40 hover:bg-danger/20 hover:text-[#ffb4b4]"
-        >
-          <LogOut className="size-4" strokeWidth={2} />
-          Log Keluar
-        </button>
       </div>
     </div>
   );

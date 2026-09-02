@@ -41,7 +41,7 @@ const overrideSchema = z.object({
   keterangan: z.string().nullish(),
 });
 
-function cekDuplikasi(tanggal: string, username: string, sesi: string) {
+function cekDuplikasi(tanggal: string, username: string, sesi: "Subuh" | "Maghrib") {
   const existing = db
     .select()
     .from(absensiUstadz)

@@ -4,11 +4,12 @@ import { db } from "../db";
 import {
   absensiUstadz,
   dataSantri,
+  dataTasmi,
   masterSantri,
   users,
 } from "../db/schema";
 import { requireAuth } from "../middleware/auth";
-import { getSettings } from "../lib/settings";
+import { getSettings, resolvePresensiSession } from "../lib/settings";
 import { wibDaysAgo, wibParts } from "../lib/wib";
 
 export const dashboardRouter = Router();
@@ -18,7 +19,8 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
   const scopedHalqah =
     user.role === "Ustadz" || user.role === "Ustadzah" ? user.halqah : null;
   const settings = getSettings();
-  const today = wibParts().date;
+  const now = wibParts();
+  const today = now.date;
 
   const santriRows = db
     .select()
@@ -53,6 +55,7 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
     status: string;
     kendala: string;
     target: string;
+    catatan: string;
   }> = [];
 
   for (const santri of santriRows) {
@@ -71,7 +74,72 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
         status,
         kendala: latest?.penyebab ?? "-",
         target: latest?.targetJuz ?? `Juz ${Math.max(25, 31 - santri.tingkatan)}`,
+        catatan: latest?.catatan ?? "-",
       });
+    }
+  }
+
+  // Tasmi calculation
+  const tasmiRows = db
+    .select()
+    .from(dataTasmi)
+    .orderBy(desc(dataTasmi.tanggal), desc(dataTasmi.id))
+    .all();
+
+  const filteredTasmi = scopedHalqah
+    ? tasmiRows.filter((t) => t.halqah === scopedHalqah)
+    : tasmiRows;
+
+  const latestTasmiBySantri = new Map<number, typeof tasmiRows[number]>();
+  for (const t of filteredTasmi) {
+    if (!latestTasmiBySantri.has(t.santriId)) latestTasmiBySantri.set(t.santriId, t);
+  }
+
+  let tasmiLulus = 0;
+  let mumtazCount = 0;
+  let jayyidJiddanCount = 0;
+  let jayyidCount = 0;
+  let rasibCount = 0;
+
+  for (const t of latestTasmiBySantri.values()) {
+    if (t.statusKelulusan === "Lulus") tasmiLulus += 1;
+    if (t.predikat === "Mumtaz") mumtazCount += 1;
+    else if (t.predikat === "Jayyid Jiddan") jayyidJiddanCount += 1;
+    else if (t.predikat === "Jayyid") jayyidCount += 1;
+    else if (t.predikat === "Rasib") rasibCount += 1;
+  }
+
+  const testedCount = latestTasmiBySantri.size;
+  const belumUjianCount = Math.max(0, santriRows.length - testedCount);
+  const persenLulusTasmi = testedCount > 0 ? Math.round((tasmiLulus / testedCount) * 100) : 0;
+
+  const rekapPredikat = [
+    { name: "Mumtaz", count: mumtazCount },
+    { name: "Jayyid Jiddan", count: jayyidJiddanCount },
+    { name: "Jayyid", count: jayyidCount },
+    { name: "Rasib", count: rasibCount },
+    { name: "Belum Ujian", count: belumUjianCount },
+  ];
+
+  const totalSantriCount = santriRows.length || 1;
+  const persentaseCapaian = [
+    { name: "Tuntas Target", count: tuntas, percent: Math.round((tuntas / totalSantriCount) * 100), color: "#10b981" },
+    { name: "Sedang Process", count: sedang, percent: Math.round((sedang / totalSantriCount) * 100), color: "#f59e0b" },
+    { name: "Recovery", count: recovery, percent: Math.round((recovery / totalSantriCount) * 100), color: "#ef4444" },
+  ];
+
+  // Presensi Session Status
+  const presensiSession = resolvePresensiSession(now);
+  let bannerMessage = "";
+  if (presensiSession.open) {
+    bannerMessage = `Dibuka: Sesi ${presensiSession.sesi} sedang berlangsung saat ini.`;
+  } else {
+    if (now.time < settings.presensi_subuh_mulai) {
+      bannerMessage = `Ditutup: Sesi terdekat Subuh (${settings.presensi_subuh_mulai} - ${settings.presensi_subuh_selesai} WIB).`;
+    } else if (now.time < settings.presensi_maghrib_mulai) {
+      bannerMessage = `Ditutup: Sesi terdekat Maghrib (${settings.presensi_maghrib_mulai} - ${settings.presensi_maghrib_selesai} WIB).`;
+    } else {
+      bannerMessage = `Ditutup: Presensi hari ini telah berakhir.`;
     }
   }
 
@@ -134,14 +202,24 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
       tuntas,
       sedang,
       recovery,
+      lulusTasmiPercent: persenLulusTasmi,
+      tasmiLulus,
+      testedTasmiCount: testedCount,
       presensiHadir: hadirUsernames.size,
       presensiTotal: ustadzAktif.length,
       presensiSubuh: subuhHadir,
       presensiMaghrib: maghribHadir,
     },
+    persentaseCapaian,
+    rekapPredikat,
+    presensiBanner: {
+      open: presensiSession.open,
+      message: bannerMessage,
+      sesi: presensiSession.sesi,
+    },
     capaianHalqah,
     distribusiHalqah,
-    santriPerluPerhatian: perluPerhatian.slice(0, 5),
+    santriPerluPerhatian: perluPerhatian.slice(0, 10),
     presensiTerbaru: absensiToday.slice(0, 5).map((row) => ({
       tanggal: row.tanggal,
       jam: row.jam,

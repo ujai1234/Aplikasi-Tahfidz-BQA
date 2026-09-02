@@ -16,14 +16,23 @@ npm run db:seed           # isi data demo (tambah --force untuk seed ulang)
 npm run dev               # http://localhost:4000/api
 ```
 
-## Akun Demo
+## Akun Demo (Default Seed)
 
-| Role    | Username      | Password   | Scope                  |
-| ------- | ------------- | ---------- | ---------------------- |
-| Admin   | `ahmad.fauzi` | `admin123` | Full akses             |
-| Kepsek  | `kepsek`      | `kepsek123`| View-only              |
-| Ustadz  | `hasan.basri` | `ustadz123`| Halqah Al-Fatih        |
-| Ustadzah| `maryam.s`    | `ustadz123`| Halqah An-Nahl         |
+| Role | Username (Email) | Password | Nama | Halqah |
+| :--- | :--- | :--- | :--- | :--- |
+| **Admin** | `zeikun98@gmail.com` | `123456` | Ustadz Hudzaifah | Semua (Full Akses) |
+| **Ustadz** | `hudzaifahnasrullah98@gmail.com` | `123456` | Ustadz Ahmad | Halqah 1 (Ikhwan) |
+| **Ustadzah** | `itsmeqnby@gmail.com` | `123456` | Ustadzah Indah | Halqah 2 (Akhwat) |
+| **Ustadz** | `zahid@gmail.com` | `123456` | Ustadz Zahid | Halqah 3 (Ikhwan) |
+| **Ustadzah** | `muminah@gmail.com` | `123456` | Ustadzah Mu'minah | Halqah 3 (Akhwat) |
+| **Ustadz** | `saif@gmail.com` | `123456` | Ustadz Saif | Halqah 4 (Ikhwan) |
+| **Ustadzah** | `dara@gmail.com` | `123456` | Ustadzah Dara | Halqah 4 (Akhwat) |
+| **Ustadz** | `ahadiat@gmail.com` | `123456` | Ustadz Hadi | Halqah 6 (Ikhwan) |
+| **Ustadzah** | `khadijah@gmail.com` | `123456` | Ustadzah Khadijah | Halqah 1 (Akhwat) |
+| **Ustadz** | `faisal@gmail.com` | `123456` | Ustadz Faisal | Halqah 2 (Ikhwan) |
+| **Ustadz** | `salman@gmail.com` | `123456` | Ustadz Salman | Halqah 5 (Ikhwan) |
+| **Ustadzah** | `fatimah@gmail.com` | `123456` | Ustadzah Fatimah | Halqah 5 (Akhwat) |
+| **Ustadzah** | `aisyah@gmail.com` | `123456` | Ustadzah Aisyah | Halqah 6 (Akhwat) |
 
 ## Endpoint
 

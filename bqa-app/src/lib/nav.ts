@@ -30,23 +30,18 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Menu Utama",
     items: [
-      { href: "/", label: "Dashboard", icon: LayoutGrid },
+      { href: "/", label: "Dashboard Overview", icon: LayoutGrid },
+      { href: "/absensi", label: "Presensi Kehadiran", icon: Clock },
       { href: "/data-santri", label: "Data Santri", icon: BookOpen },
-      { href: "/evaluasi", label: "Evaluasi Harian", icon: ClipboardList },
-      { href: "/absensi", label: "Absensi Ustadz", icon: Clock },
-      { href: "/tasmi", label: "Ujian Tasmi'", icon: Award },
-    ],
-  },
-  {
-    title: "Manajemen",
-    items: [
-      { href: "/users", label: "Manajemen User", icon: Users, adminOnly: true },
+      { href: "/evaluasi", label: "Input Evaluasi", icon: ClipboardList },
+      { href: "/tasmi", label: "Input Tasmi'", icon: Award },
       { href: "/laporan", label: "Laporan & Cetak", icon: ChartPie },
     ],
   },
   {
-    title: "Sistem",
+    title: "Manajemen & Sistem",
     items: [
+      { href: "/users", label: "Manajemen User", icon: Users, adminOnly: true },
       {
         href: "/pengaturan",
         label: "Pengaturan",

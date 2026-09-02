@@ -81,10 +81,28 @@ export interface DashboardData {
     tuntas: number;
     sedang: number;
     recovery: number;
+    lulusTasmiPercent: number;
+    tasmiLulus?: number;
+    testedTasmiCount?: number;
     presensiHadir: number;
     presensiTotal: number;
     presensiSubuh: number;
     presensiMaghrib: number;
+  };
+  persentaseCapaian?: Array<{
+    name: string;
+    count: number;
+    percent: number;
+    color: string;
+  }>;
+  rekapPredikat?: Array<{
+    name: string;
+    count: number;
+  }>;
+  presensiBanner?: {
+    open: boolean;
+    message: string;
+    sesi: Sesi | null;
   };
   capaianHalqah: Array<{ name: string; value: number }>;
   distribusiHalqah: Array<{ name: string; total: number; percent: number }>;
@@ -96,6 +114,7 @@ export interface DashboardData {
     status: CapaianStatus;
     kendala: string;
     target: string;
+    catatan?: string;
   }>;
   presensiTerbaru: Array<{
     tanggal: string;
@@ -378,6 +397,15 @@ export const api = {
   },
 
   tasmi: {
+    status() {
+      return request<{
+        isFriday: boolean;
+        periodicUnlocked: boolean;
+        pekanan: { open: boolean; reason: string | null };
+        per3Bulan: { open: boolean; reason: string | null };
+        per6Bulan: { open: boolean; reason: string | null };
+      }>("/tasmi/status");
+    },
     list(
       query: {
         halqah?: string;

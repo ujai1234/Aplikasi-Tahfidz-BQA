@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: bqa-api
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=production
+      - DB_PATH=/app/data/bqa.db
+      - JWT_SECRET=bqa_jwt_secret_pesantren_2026_super_secure
+      - JWT_EXPIRES_IN=24h
+      - CORS_ORIGIN=http://localhost:3000
+    volumes:
+      - bqa_sqlite_data:/app/data
+
+  web:
+    build:
+      context: ./bqa-app
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:4000/api
+    container_name: bqa-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    depends_on:
+      - api
+
+volumes:
+  bqa_sqlite_data:
+    driver: local

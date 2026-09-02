@@ -7,6 +7,7 @@ import {
   Clock3,
   ClipboardCheck,
   Info,
+  KeyRound,
   MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -269,6 +270,69 @@ export function EvaluasiTimeForm() {
             dapat menginput.
           </p>
           <SaveButton label="Simpan Waktu Evaluasi" saving={saving} />
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function TasmiLockForm() {
+  const { values, setValues, save, saving } = useSettingsForm([
+    "tasmi_unlock_periodic",
+  ]);
+
+  const isUnlocked = values.tasmi_unlock_periodic === "1";
+
+  return (
+    <Card className="h-full">
+      <FormHeader
+        icon={KeyRound}
+        tone="bg-gold-soft text-gold-ink"
+        title="Kunci Ujian Tasmi'"
+        description="Kontrol akses Ujian Tasmi' 3 Bulanan & 6 Bulanan"
+      />
+      <CardContent>
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            save();
+          }}
+        >
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Akses Di Luar Hari Jumat
+            </label>
+            <div className="flex items-center justify-between rounded-xl border border-line bg-[#fbfdfc] p-3.5">
+              <div className="space-y-0.5">
+                <p className="text-[13.5px] font-bold text-ink">
+                  Buka Kunci Ujian Periodic (3 & 6 Bulan)
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Izinkan penginputan Ujian Tasmi&apos; Per 3 Bulan dan Per 6 Bulan pada hari selain Jumat.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant={isUnlocked ? "default" : "outline"}
+                size="sm"
+                onClick={() =>
+                  setValues((v) => ({
+                    ...v,
+                    tasmi_unlock_periodic: isUnlocked ? "0" : "1",
+                  }))
+                }
+              >
+                {isUnlocked ? "Terbuka (Aktif)" : "Terkunci (Nonaktif)"}
+              </Button>
+            </div>
+          </div>
+
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            <b>Catatan:</b> Ujian Tasmi&apos; Pekanan tetap hanya dibuka pada hari Jumat. Sakelar ini khusus untuk memberikan kelonggaran penginputan ujian 3 bulanan dan 6 bulanan di luar hari Jumat.
+          </p>
+
+          <SaveButton label="Simpan Pengaturan Tasmi'" saving={saving} />
         </form>
       </CardContent>
     </Card>

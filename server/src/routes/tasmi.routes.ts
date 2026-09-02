@@ -10,6 +10,8 @@ import { requireAdmin, requireAuth, requireWrite, scopeHalqah } from "../middlew
 import { validateBody, validateQuery } from "../middleware/validate";
 import { wibParts } from "../lib/wib";
 
+import { checkTasmiWindow, getSettings } from "../lib/settings";
+
 export const tasmiRouter = Router();
 
 const listQuerySchema = z.object({
@@ -30,6 +32,25 @@ const createSchema = z.object({
 });
 
 tasmiRouter.use(requireAuth);
+
+tasmiRouter.get("/status", (req, res) => {
+  const now = wibParts();
+  const isFriday = now.day === 5;
+  const settings = getSettings();
+  const periodicUnlocked = settings.tasmi_unlock_periodic === "1";
+
+  const pekanan = checkTasmiWindow("Pekanan", req.user!.role, now);
+  const per3Bulan = checkTasmiWindow("Per 3 Bulan", req.user!.role, now);
+  const per6Bulan = checkTasmiWindow("Per 6 Bulan", req.user!.role, now);
+
+  res.json({
+    isFriday,
+    periodicUnlocked,
+    pekanan,
+    per3Bulan,
+    per6Bulan,
+  });
+});
 
 tasmiRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
   const { halqah, jenis, kelulusan, q, limit } = res.locals.query as z.infer<
@@ -68,6 +89,11 @@ tasmiRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
 
 tasmiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) => {
   const body = req.body as z.infer<typeof createSchema>;
+
+  const windowCheck = checkTasmiWindow(body.jenisTasmi, req.user!.role);
+  if (!windowCheck.open) {
+    throw new HttpError(403, windowCheck.reason ?? "Input Ujian Tasmi' sedang dikunci.");
+  }
 
   const santri = db
     .select()

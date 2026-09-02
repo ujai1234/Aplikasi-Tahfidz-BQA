@@ -1,19 +1,21 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, CircleAlert, Clock, MapPin, UserCheck, Users } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { StatCard } from "@/components/ui/stat-card";
+import Link from "next/link";
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  AlertTriangle,
+  Award,
+  Calendar,
+  CheckCircle2,
+  Clock3,
+  Lock,
+  Sparkles,
+  Unlock,
+  Users,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LiveDot } from "@/components/ui/live-dot";
 import {
   Table,
   TableBody,
@@ -22,16 +24,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { LinkMore } from "@/components/ui/link-more";
-import { UserCell } from "@/components/ui/user-cell";
-import { CapaianChart } from "@/components/dashboard/capaian-chart";
-import { DistribusiDonut } from "@/components/dashboard/distribusi-donut";
+import { PersentaseTargetChart } from "@/components/dashboard/persentase-target-chart";
+import { RekapTasmiChart } from "@/components/dashboard/rekap-tasmi-chart";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
-import { capaianVariant, initialsOf, presensiVariant } from "@/lib/utils";
+import { capaianVariant } from "@/lib/utils";
 
-function tanggalIndo(dateStr: string): string {
-  return new Date(`${dateStr}T00:00:00`).toLocaleDateString("id-ID", {
+function tanggalIndoFormat(date: Date): string {
+  return date.toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -39,66 +39,10 @@ function tanggalIndo(dateStr: string): string {
   });
 }
 
-function SesiStrip({
-  sesi,
-}: {
-  sesi: { subuh: { mulai: string; selesai: string; hadir: number }; maghrib: { mulai: string; selesai: string; hadir: number } };
-}) {
-  const items = [
-    { key: "Subuh", ...sesi.subuh, done: true },
-    { key: "Maghrib", ...sesi.maghrib, done: false },
-  ];
-
-  return (
-    <Card>
-      <CardContent className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-center">
-        {items.map((item) => (
-          <div
-            key={item.key}
-            className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-[#fbfdfc] px-4 py-3"
-          >
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
-              <CalendarClock className="size-5" strokeWidth={1.9} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-extrabold text-ink">Sesi {item.key}</p>
-              <p className="text-xs font-medium text-muted-foreground">
-                {item.mulai} – {item.selesai} WIB
-              </p>
-            </div>
-            <Badge variant={item.hadir > 0 ? "success" : "neutral"} className="ml-auto">
-              {item.done ? (
-                item.hadir > 0 ? (
-                  "Selesai"
-                ) : (
-                  "Ditutup"
-                )
-              ) : item.hadir > 0 ? (
-                <>
-                  <LiveDot />
-                  Berlangsung
-                </>
-              ) : (
-                "Belum dibuka"
-              )}
-            </Badge>
-            <p className="ml-auto text-xs font-medium text-muted-foreground md:ml-0">
-              <b className="text-sm font-extrabold text-ink">{item.hadir}</b> hadir
-            </p>
-          </div>
-        ))}
-        <p className="flex items-start gap-2 text-xs leading-relaxed font-medium text-muted-foreground md:max-w-56">
-          <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.9} />
-          Radius validasi ≤ 500 m dari koordinat pesantren. Jumat: sesi khusus
-          04:30 – 21:00.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function DashboardClient() {
   const { user } = useAuth();
+  const todayFormatted = useMemo(() => tanggalIndoFormat(new Date()), []);
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => api.dashboard(),
@@ -106,9 +50,9 @@ export function DashboardClient() {
 
   if (isLoading || !data) {
     return (
-      <div className="grid min-h-[40vh] place-items-center">
+      <div className="grid min-h-[50vh] place-items-center">
         <p className="animate-pulse text-sm font-semibold text-muted-foreground">
-          Memuat data dashboard…
+          Memuat data Dashboard Overview…
         </p>
       </div>
     );
@@ -116,172 +60,224 @@ export function DashboardClient() {
 
   if (isError) return null;
 
-  const { stats, sesi } = data;
-  const total = stats.totalSantri || 1;
-  const pct = (n: number) => Math.round((n / total) * 100);
+  const { stats, persentaseCapaian, rekapPredikat, presensiBanner, santriPerluPerhatian } = data;
+  const isPresensiOpen = presensiBanner?.open ?? false;
 
   return (
-    <>
-      <PageHeader
-        title="Dashboard"
-        subtitle={`Assalamu'alaikum, ${user?.nama ?? ""} · ${tanggalIndo(
-          new Date().toISOString().slice(0, 10)
-        )}`}
-      />
+    <div className="space-y-5">
+      {/* Top Header Row */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+            Dashboard Overview
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {user?.nama ? `Assalamu'alaikum, ${user.nama}` : "Monitoring & Evaluasi Tahfidz"}
+            {user?.halqah ? ` · ${user.halqah}` : ""}
+          </p>
+        </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard
-          icon={Users}
-          tone="primary"
-          value={String(stats.totalSantri)}
-          label="Total Santri Aktif"
-          delay={0}
-        />
-        <StatCard
-          icon={UserCheck}
-          tone="success"
-          value={String(stats.tuntas)}
-          label="Tuntas"
-          progress={pct(stats.tuntas)}
-          footer={`${pct(stats.tuntas)}% dari total santri`}
-          delay={60}
-        />
-        <StatCard
-          icon={Clock}
-          tone="warning"
-          value={String(stats.sedang)}
-          label="Sedang Proses"
-          progress={pct(stats.sedang)}
-          footer={`${pct(stats.sedang)}% dari total santri`}
-          delay={120}
-        />
-        <StatCard
-          icon={CircleAlert}
-          tone="danger"
-          value={String(stats.recovery)}
-          label="Recovery"
-          progress={pct(stats.recovery)}
-          footer={`${pct(stats.recovery)}% dari total santri`}
-          delay={180}
-        />
-        <StatCard
-          icon={MapPin}
-          tone="info"
-          value={`${stats.presensiHadir}/${stats.presensiTotal}`}
-          label="Presensi Ustadz Hari Ini"
-          footer={`Subuh ${stats.presensiSubuh} · Maghrib ${stats.presensiMaghrib}`}
-          delay={240}
-        />
-      </section>
+        {/* Date Chip */}
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3.5 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs">
+          <Calendar className="size-3.5 text-emerald-600" />
+          <span>{todayFormatted}</span>
+        </div>
+      </div>
 
-      <SesiStrip sesi={sesi} />
+      {/* Presensi Status Alert Banner */}
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 shadow-2xs transition-all ${
+          isPresensiOpen
+            ? "border-emerald-200 bg-emerald-50/70 text-emerald-900"
+            : "border-rose-200 bg-rose-50/80 text-rose-900"
+        }`}
+      >
+        <div className="flex items-center gap-2.5">
+          {isPresensiOpen ? (
+            <Unlock className="size-4.5 text-emerald-600 shrink-0" />
+          ) : (
+            <Lock className="size-4.5 text-rose-600 shrink-0" />
+          )}
+          <p className="text-[13px] font-semibold">
+            {presensiBanner?.message ?? "Presensi kehadiran sesi ustadz."}
+          </p>
+        </div>
 
-      <section className="grid items-stretch gap-5 lg:grid-cols-[1.6fr_1fr]">
-        <CapaianChart data={data.capaianHalqah} />
-        <DistribusiDonut data={data.distribusiHalqah} />
-      </section>
+        <Link
+          href="/absensi"
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs ${
+            isPresensiOpen
+              ? "bg-emerald-600 text-white hover:bg-emerald-700"
+              : "bg-rose-200/90 text-rose-800 hover:bg-rose-300"
+          }`}
+        >
+          {isPresensiOpen ? (
+            <>
+              <Unlock className="size-3.5" />
+              <span>Presensi Sekarang</span>
+            </>
+          ) : (
+            <>
+              <Lock className="size-3.5" />
+              <span>Presensi Ditutup</span>
+            </>
+          )}
+        </Link>
+      </div>
 
-      <section className="grid items-stretch gap-5 lg:grid-cols-[1.35fr_1fr]">
-        <Card className="gap-4 pb-0">
-          <CardHeader className="border-b border-line pb-4">
-            <CardTitle>Santri Perlu Perhatian</CardTitle>
-            <CardDescription>Status recovery &amp; kendala hafalan terbaru</CardDescription>
-            <CardAction>
-              <LinkMore href="/data-santri">Lihat semua</LinkMore>
-            </CardAction>
-          </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Santri</TableHead>
-                <TableHead>Halqah</TableHead>
-                <TableHead>Tingkat</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Kendala</TableHead>
-                <TableHead>Target</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.santriPerluPerhatian.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                    Tidak ada santri yang perlu perhatian — Alhamdulillah
-                  </TableCell>
-                </TableRow>
-              ) : (
-                data.santriPerluPerhatian.map((santri) => (
-                  <TableRow key={santri.nis}>
-                    <TableCell>
-                      <UserCell
-                        initials={initialsOf(santri.nama)}
-                        name={santri.nama}
-                        sub={`NIS ${santri.nis}`}
-                      />
-                    </TableCell>
-                    <TableCell>{santri.halqah}</TableCell>
-                    <TableCell>{santri.tingkat}</TableCell>
-                    <TableCell>
-                      <Badge variant={capaianVariant[santri.status]}>
-                        {santri.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{santri.kendala}</TableCell>
-                    <TableCell>{santri.target}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+      {/* 5 Metric Summary Cards */}
+      <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
+        {/* Total Santri */}
+        <Card className="border-line bg-card shadow-2xs transition-all hover:shadow-sm">
+          <CardContent className="flex items-center justify-between p-4.5">
+            <div className="space-y-1">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+                Total Santri
+              </p>
+              <p className="font-display text-2xl font-black text-ink">
+                {stats.totalSantri}
+              </p>
+            </div>
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-600">
+              <Users className="size-5" />
+            </div>
+          </CardContent>
         </Card>
 
-        <Card className="gap-4 pb-0">
-          <CardHeader className="border-b border-line pb-4">
-            <CardTitle>Presensi Terbaru</CardTitle>
-            <CardDescription>Kehadiran ustadz dengan validasi GPS</CardDescription>
-            <CardAction>
-              <LinkMore href="/absensi">Riwayat lengkap</LinkMore>
-            </CardAction>
-          </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>Sesi</TableHead>
-                <TableHead>Jam</TableHead>
-                <TableHead>Jarak</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.presensiTerbaru.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                    Belum ada presensi hari ini
-                  </TableCell>
-                </TableRow>
-              ) : (
-                data.presensiTerbaru.map((row) => (
-                  <TableRow key={`${row.nama}-${row.sesi}`}>
-                    <TableCell>
-                      <UserCell
-                        initials={initialsOf(row.nama)}
-                        name={row.nama}
-                        sub={row.halqah}
-                      />
-                    </TableCell>
-                    <TableCell>{row.sesi}</TableCell>
-                    <TableCell>{row.jam}</TableCell>
-                    <TableCell>{row.jarak}</TableCell>
-                    <TableCell>
-                      <Badge variant={presensiVariant[row.status]}>{row.status}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+        {/* Tuntas Target */}
+        <Card className="border-line bg-card shadow-2xs transition-all hover:shadow-sm">
+          <CardContent className="flex items-center justify-between p-4.5">
+            <div className="space-y-1">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-emerald-600">
+                Tuntas Target
+              </p>
+              <p className="font-display text-2xl font-black text-emerald-600">
+                {stats.tuntas}
+              </p>
+            </div>
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
+              <CheckCircle2 className="size-5" />
+            </div>
+          </CardContent>
         </Card>
-      </section>
-    </>
+
+        {/* Sedang Process */}
+        <Card className="border-line bg-card shadow-2xs transition-all hover:shadow-sm">
+          <CardContent className="flex items-center justify-between p-4.5">
+            <div className="space-y-1">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-amber-600">
+                Sedang Process
+              </p>
+              <p className="font-display text-2xl font-black text-amber-600">
+                {stats.sedang}
+              </p>
+            </div>
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-700">
+              <Clock3 className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recovery */}
+        <Card className="border-line bg-card shadow-2xs transition-all hover:shadow-sm">
+          <CardContent className="flex items-center justify-between p-4.5">
+            <div className="space-y-1">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-rose-600">
+                Recovery
+              </p>
+              <p className="font-display text-2xl font-black text-rose-600">
+                {stats.recovery}
+              </p>
+            </div>
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-rose-100 text-rose-700">
+              <AlertTriangle className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lulus Tasmi' */}
+        <Card className="border-line bg-card shadow-2xs transition-all hover:shadow-sm">
+          <CardContent className="flex items-center justify-between p-4.5">
+            <div className="space-y-1">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-blue-600">
+                Lulus Tasmi&apos;
+              </p>
+              <p className="font-display text-2xl font-black text-blue-600">
+                {stats.lulusTasmiPercent}%
+              </p>
+            </div>
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-blue-100 text-blue-700">
+              <Award className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Middle Row: Two Charts */}
+      <div className="grid items-stretch gap-5 lg:grid-cols-2">
+        <PersentaseTargetChart data={persentaseCapaian} />
+        <RekapTasmiChart data={rekapPredikat} />
+      </div>
+
+      {/* Bottom Table: Santri Perlu Perhatian Khusus */}
+      <Card className="overflow-hidden border-line bg-card shadow-2xs">
+        <div className="border-b border-line bg-slate-50/50 p-4.5">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="size-4.5 text-rose-600 shrink-0" />
+            <div>
+              <h2 className="text-[14.5px] font-bold text-ink">
+                Santri Perlu Perhatian Khusus (Sedang / Recovery)
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Daftar santri yang belum tuntas target kurikulum
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <TableHead className="py-3">Nama Santri</TableHead>
+              <TableHead className="py-3">Halqah</TableHead>
+              <TableHead className="py-3">Status</TableHead>
+              <TableHead className="py-3">Penyebab Kendala</TableHead>
+              <TableHead className="py-3">Catatan Pembimbing</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {santriPerluPerhatian.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-12 text-center text-sm font-semibold text-slate-500">
+                  <span className="flex items-center justify-center gap-2">
+                    <Sparkles className="size-4 text-emerald-500" />
+                    Semua santri tuntas target 🎉
+                  </span>
+                </TableCell>
+              </TableRow>
+            ) : (
+              santriPerluPerhatian.map((santri) => (
+                <TableRow key={santri.nis} className="text-[13px] hover:bg-slate-50/60">
+                  <TableCell className="font-bold text-ink">
+                    {santri.nama}
+                    <span className="block text-[11px] font-medium text-muted-foreground">
+                      NIS: {santri.nis} · Tingkat {santri.tingkat}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-semibold text-slate-700">{santri.halqah}</TableCell>
+                  <TableCell>
+                    <Badge variant={capaianVariant[santri.status] ?? "neutral"}>
+                      {santri.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-slate-600 max-w-xs">{santri.kendala || "-"}</TableCell>
+                  <TableCell className="text-slate-600 max-w-xs">{santri.catatan || "-"}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   );
 }
