@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -34,19 +35,27 @@ export const metadata: Metadata = {
     "Aplikasi Tahfidz Pondok Pesantren Baitul Qur'an Al-Ikhwan: manajemen hafalan santri dan absensi ustadz berbasis GPS.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="id"
+      suppressHydrationWarning
       className={`${inter.variable} ${sora.variable} ${amiri.variable} antialiased`}
     >
-      <body className="min-h-screen">
-        <QueryProvider>
-          <AuthProvider>
-            <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
-            <Toaster position="top-right" />
-          </AuthProvider>
-        </QueryProvider>
+      <body className="min-h-screen" suppressHydrationWarning>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <QueryProvider>
+            <AuthProvider>
+              <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+              <Toaster position="top-right" />
+            </AuthProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

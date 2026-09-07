@@ -7,29 +7,32 @@
   <meta name="description" content="Login sistem manajemen pesantren: tahfidz dan absensi ustadz." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body class="login-body">
 
   <main class="login-card">
     <div class="login-brand">
-      <div class="brand-mark">BQA</div>
+      <div class="brand-logo-img">
+        <img src="logobqa.jpg" alt="Logo Baitul Qur'an Al-Ikhwan" />
+      </div>
+      <p class="bismillah-text">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</p>
       <div>
-        <h1 class="login-title">Baitul Qur'an Al-Ikhwan</h1>
-        <p class="login-sub">Sistem Tahfidz &amp; Absensi Ustadz</p>
+        <h1 class="login-title">Aplikasi Tahfidz &amp; Presensi</h1>
+        <p class="login-sub-pill">Baitul Qur'an Al-Ikhwan</p>
       </div>
     </div>
 
     <form class="login-form">
       <div class="field">
         <label for="username">Username atau Email <span class="req">*</span></label>
-        <input id="username" type="text" placeholder="mis. ahmad.fauzi" autocomplete="username" />
+        <input id="username" type="text" placeholder="mis. ahmad.fauzi" value="admin" autocomplete="username" />
       </div>
 
       <div class="field">
         <label for="password">Password <span class="req">*</span></label>
-        <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+        <input id="password" type="password" placeholder="••••••••" value="admin123" autocomplete="current-password" />
         <small class="hint">Gunakan akun terdaftar: Admin, Ustadz, Ustadzah, atau Kepala Pesantren.</small>
       </div>
 
@@ -42,12 +45,22 @@
       </div>
 
       <a href="index.html" class="btn btn-primary btn-lg btn-block">
-        Masuk
+        Masuk Ke Aplikasi
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </a>
     </form>
 
-    <p class="login-foot">© 2026 Pesantren Baitul Qur'an Al-Ikhwan · Sesi diamankan JWT 24 jam</p>
+    <div class="quick-demo-section">
+      <p class="quick-demo-title">✨ Akses Cepat Demo Persona</p>
+      <div class="quick-demo-buttons">
+        <button type="button" onclick="document.getElementById('username').value='admin'; document.getElementById('password').value='admin123';" class="demo-btn gold">Admin</button>
+        <button type="button" onclick="document.getElementById('username').value='ustadz.ahmad'; document.getElementById('password').value='ustadz123';" class="demo-btn emerald">Ustadz</button>
+        <button type="button" onclick="document.getElementById('username').value='kepala.pesantren'; document.getElementById('password').value='kepala123';" class="demo-btn sky">Mudir</button>
+      </div>
+    </div>
+
+    <p class="login-foot">© 2026 Pesantren Baitul Qur'an Al-Ikhwan · Sesi diamankan JWT 5 menit</p>
+
   </main>
 
 </body>

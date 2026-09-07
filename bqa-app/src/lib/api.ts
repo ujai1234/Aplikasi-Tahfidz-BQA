@@ -159,18 +159,38 @@ export class ApiError extends Error {
 }
 
 const TOKEN_KEY = "bqa_token";
+const SESSION_START_KEY = "bqa_session_start";
+export const SESSION_DURATION_MS = 5 * 60 * 1000; // 5 minutes in ms
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
+  
+  // Check if session has exceeded 5 minutes
+  const sessionStart = localStorage.getItem(SESSION_START_KEY);
+  if (sessionStart && Date.now() - Number(sessionStart) > SESSION_DURATION_MS) {
+    clearToken();
+    return null;
+  }
+  
   return localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(SESSION_START_KEY, String(Date.now()));
 }
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(SESSION_START_KEY);
+}
+
+export function getSessionTimeRemainingRemainingMs(): number {
+  if (typeof window === "undefined") return 0;
+  const sessionStart = localStorage.getItem(SESSION_START_KEY);
+  if (!sessionStart) return 0;
+  const elapsed = Date.now() - Number(sessionStart);
+  return Math.max(0, SESSION_DURATION_MS - elapsed);
 }
 
 async function request<T>(
@@ -188,6 +208,9 @@ async function request<T>(
     : null;
 
   if (!res.ok) {
+    if (res.status === 401) {
+      clearToken();
+    }
     throw new ApiError(
       (data?.error as string) ?? "Terjadi kesalahan pada server",
       res.status,
@@ -196,6 +219,7 @@ async function request<T>(
   }
   return data as T;
 }
+
 
 function qs(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
@@ -493,7 +517,16 @@ export const api = {
 
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) return err.message;
-  if (err instanceof Error)
-    return err.message || "Koneksi ke server gagal — pastikan backend berjalan";
+  
+  if (err instanceof TypeError && err.message === "Failed to fetch") {
+    return "Gagal terhubung ke server. Pastikan Backend API sedang berjalan.";
+  }
+
+  if (err instanceof Error) {
+    if (err.message.includes("fetch")) {
+       return "Gagal terhubung ke server. Pastikan Backend API sedang berjalan.";
+    }
+    return err.message || "Terjadi kesalahan yang tidak diketahui";
+  }
   return "Terjadi kesalahan yang tidak diketahui";
 }

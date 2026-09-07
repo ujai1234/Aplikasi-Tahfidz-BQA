@@ -12,8 +12,9 @@ services:
       - NODE_ENV=production
       - DB_PATH=/app/data/bqa.db
       - JWT_SECRET=bqa_jwt_secret_pesantren_2026_super_secure
-      - JWT_EXPIRES_IN=24h
+      - JWT_EXPIRES_IN=5m
       - CORS_ORIGIN=http://localhost:3000
+
     volumes:
       - bqa_sqlite_data:/app/data
 

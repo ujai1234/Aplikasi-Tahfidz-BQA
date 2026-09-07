@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { toast } from "sonner";
 import { api, clearToken, getToken, type PublicUser } from "@/lib/api";
 
 interface AuthContextValue {
@@ -26,6 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(() => {
+    clearToken();
+    setUser(null);
+  }, []);
+
   useEffect(() => {
     if (!getToken()) {
       setLoading(false);
@@ -34,9 +40,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api.auth
       .me()
       .then((res) => setUser(res.user))
-      .catch(() => clearToken())
+      .catch(() => {
+        clearToken();
+        setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  // Periodic 5-minute session timer check
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(() => {
+      if (!getToken()) {
+        logout();
+        toast.error("Sesi 5 menit Anda telah berakhir. Silakan login kembali.");
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login";
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [user, logout]);
 
   const login = useCallback(
     async (usernameOrEmail: string, password: string) => {
@@ -46,11 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     []
   );
-
-  const logout = useCallback(() => {
-    clearToken();
-    setUser(null);
-  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -66,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
+
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);

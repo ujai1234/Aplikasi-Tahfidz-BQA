@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bell, LogOut, Menu, Search, Settings, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,9 +48,11 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
             type="search"
             placeholder="Cari santri, ustadz…"
             aria-label="Pencarian"
-            className="h-10 w-56 rounded-xl border border-transparent bg-[#ebf1ed] pr-3.5 pl-10 text-[13px] text-ink outline-none transition-colors placeholder:text-[#77877c] focus:border-primary focus:bg-surface"
+            className="h-10 w-56 rounded-xl border border-transparent bg-[#ebf1ed] pr-3.5 pl-10 text-[13px] text-ink outline-none transition-colors placeholder:text-[#77877c] focus:border-primary focus:bg-surface dark:bg-black/20"
           />
         </div>
+
+        <ThemeToggle />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
