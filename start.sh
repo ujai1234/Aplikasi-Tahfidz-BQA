@@ -2,7 +2,7 @@
 
 echo "Starting Express API on port 4000..."
 cd /app/server
-node dist/index.js &
+PORT=4000 node dist/index.js &
 API_PID=$!
 
 echo "Starting Next.js Web on port 3000..."
