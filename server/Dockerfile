@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-bookworm-slim AS builder
+FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -7,13 +7,13 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json tsconfig.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY src ./src
 RUN npm run build
 
 # Production stage
-FROM node:20-bookworm-slim AS runner
+FROM node:22-bookworm-slim AS runner
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ RUN mkdir -p /app/data
 
 COPY package*.json ./
 RUN apt-get update && apt-get install -y python3 make g++ curl && rm -rf /var/lib/apt/lists/* \
-    && npm ci --omit=dev \
+    && npm ci --omit=dev --legacy-peer-deps \
     && apt-get purge -y python3 make g++ && apt-get autoremove -y
 
 COPY --from=builder /app/dist ./dist
