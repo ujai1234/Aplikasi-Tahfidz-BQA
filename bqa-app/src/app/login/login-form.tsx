@@ -13,14 +13,11 @@ import { errorMessage } from "@/lib/api";
 export function LoginForm() {
   const router = useRouter();
   const { login } = useAuth();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleQuickFill = (userVal: string, passVal: string) => {
-    setUsername(userVal);
-    setPassword(passVal);
-  };
+
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,36 +108,7 @@ export function LoginForm() {
         </Button>
       </form>
 
-      {/* Quick Demo Persona Shortcuts */}
-      <div className="pt-4 border-t border-line">
-        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#065f46] dark:text-emerald-400 uppercase tracking-wider mb-2">
-          <Sparkles className="size-3.5 text-[#d97706]" />
-          <span>Akses Cepat Demo Account</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => handleQuickFill("admin", "admin123")}
-            className="bg-amber-500/10 hover:bg-amber-500/20 text-[#d97706] text-[11.5px] font-semibold px-2.5 py-1 rounded-lg border border-amber-500/30 transition-all cursor-pointer"
-          >
-            Admin
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickFill("ustadz.ahmad", "ustadz123")}
-            className="bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 text-[#065f46] dark:text-emerald-300 text-[11.5px] font-semibold px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 transition-all cursor-pointer"
-          >
-            Ustadz
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickFill("kepala.pesantren", "kepala123")}
-            className="bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 text-[11.5px] font-semibold px-2.5 py-1 rounded-lg border border-sky-200 dark:border-sky-800 transition-all cursor-pointer"
-          >
-            Mudir
-          </button>
-        </div>
-      </div>
+
     </div>
   );
 }
