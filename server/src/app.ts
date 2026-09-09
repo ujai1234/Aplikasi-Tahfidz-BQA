@@ -4,6 +4,8 @@ import { ZodError } from "zod";
 import { env } from "./env";
 import { HttpError } from "./lib/errors";
 import { authRouter } from "./routes/auth.routes";
+import { auth } from "./lib/auth";
+import { toNodeHandler } from "better-auth/node";
 import { usersRouter } from "./routes/users.routes";
 import { santriRouter } from "./routes/santri.routes";
 import { evaluasiRouter } from "./routes/evaluasi.routes";
@@ -30,6 +32,9 @@ export function createApp() {
   });
 
   app.use("/api/auth", authRouter);
+  
+  // Better Auth
+  app.all("/api/better-auth/*", toNodeHandler(auth));
   app.use("/api/users", usersRouter);
   app.use("/api/santri", santriRouter);
   app.use("/api/evaluasi", evaluasiRouter);

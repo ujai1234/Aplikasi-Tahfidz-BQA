@@ -1,5 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
 import { verifyToken, type JwtUser } from "../lib/auth";
+import { auth } from "../lib/auth"; // Better Auth instance
+import { db } from "../db";
+import { users } from "../db/schema";
+import { eq } from "drizzle-orm";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -10,23 +14,49 @@ declare global {
   }
 }
 
-export function requireAuth(
+export async function requireAuth(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   const header = req.headers.authorization;
-  if (!header || !header.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Token tidak ditemukan — silakan login" });
+  if (header && header.startsWith("Bearer ")) {
+    const payload = verifyToken(header.slice(7));
+    if (!payload) {
+      res.status(401).json({ error: "Token tidak valid atau kedaluwarsa" });
+      return;
+    }
+    req.user = payload;
+    next();
     return;
   }
-  const payload = verifyToken(header.slice(7));
-  if (!payload) {
-    res.status(401).json({ error: "Token tidak valid atau kedaluwarsa" });
-    return;
+  
+  // Try Better Auth
+  try {
+    const session = await auth.api.getSession({ headers: req.headers });
+    if (!session || !session.user) {
+       res.status(401).json({ error: "Sesi tidak valid — silakan login via Google" });
+       return;
+    }
+    
+    // Fallback: Check email in Tahfidz users table
+    const tUser = db.select().from(users).where(eq(users.email, session.user.email)).get();
+    if (!tUser) {
+       res.status(403).json({ error: "Email Google belum terdaftar di sistem Tahfidz. Hubungi Admin." });
+       return;
+    }
+    
+    req.user = {
+      id: tUser.id,
+      username: tUser.username,
+      nama: tUser.nama,
+      role: tUser.role as any,
+      halqah: tUser.halqah
+    };
+    next();
+  } catch (err) {
+    res.status(401).json({ error: "Gagal memverifikasi sesi" });
   }
-  req.user = payload;
-  next();
 }
 
 export function requireRoles(...roles: Array<string>) {

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { api, clearToken, getToken, type PublicUser } from "@/lib/api";
+import { useSession, signOut as betterSignOut } from "@/lib/auth-client";
 
 interface AuthContextValue {
   user: PublicUser | null;
@@ -24,50 +25,70 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<PublicUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [legacyUser, setLegacyUser] = useState<PublicUser | null>(null);
+  const [legacyLoading, setLegacyLoading] = useState(true);
+  
+  // Better Auth session hook
+  const { data: session, isPending: sessionPending } = useSession();
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     clearToken();
-    setUser(null);
+    setLegacyUser(null);
+    try {
+      await betterSignOut();
+    } catch(e) {}
+    if (typeof window !== 'undefined') window.location.href = '/login';
   }, []);
 
   useEffect(() => {
+    // If we have a valid Better Auth session, fetch the backend to resolve the Tahfidz user
+    // because Better Auth 'session.user' only contains Google profile data.
+    if (session?.user) {
+       api.auth.me()
+         .then((res) => {
+            setLegacyUser(res.user);
+            setLegacyLoading(false);
+         })
+         .catch(() => {
+            setLegacyUser(null);
+            setLegacyLoading(false);
+         });
+       return;
+    }
+    
+    // Fallback to legacy JWT logic
     if (!getToken()) {
-      setLoading(false);
+      setLegacyLoading(false);
       return;
     }
     api.auth
       .me()
-      .then((res) => setUser(res.user))
+      .then((res) => setLegacyUser(res.user))
       .catch(() => {
         clearToken();
-        setUser(null);
+        setLegacyUser(null);
       })
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => setLegacyLoading(false));
+  }, [session?.user]);
 
-  // Periodic 5-minute session timer check
+  // Periodic session check only if using legacy token (not Better Auth)
   useEffect(() => {
-    if (!user) return;
+    if (!legacyUser || session?.user) return;
 
     const interval = setInterval(() => {
       if (!getToken()) {
         logout();
-        toast.error("Sesi 5 menit Anda telah berakhir. Silakan login kembali.");
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-          window.location.href = "/login";
-        }
+        toast.error("Sesi Anda telah berakhir. Silakan login kembali.");
       }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [user, logout]);
+  }, [legacyUser, session?.user, logout]);
 
   const login = useCallback(
     async (usernameOrEmail: string, password: string) => {
       const res = await api.auth.login(usernameOrEmail, password);
-      setUser(res.user);
+      setLegacyUser(res.user);
       return res.user;
     },
     []
@@ -75,19 +96,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      user,
-      loading,
-      isAdmin: user?.role === "Admin",
-      isKepsek: user?.role === "Kepsek",
+      user: legacyUser,
+      loading: legacyLoading || sessionPending,
+      isAdmin: legacyUser?.role === "Admin",
+      isKepsek: legacyUser?.role === "Kepsek",
       login,
       logout,
     }),
-    [user, loading, login, logout]
+    [legacyUser, legacyLoading, sessionPending, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);

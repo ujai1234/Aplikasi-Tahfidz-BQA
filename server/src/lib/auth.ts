@@ -1,32 +1,42 @@
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-export type Role = "Admin" | "Ustadz" | "Ustadzah" | "Kepsek";
-import { env } from "../env";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "../db/index.js";
+import * as schema from "../db/schema.js";
 
-export interface JwtUser {
-  id: number;
-  username: string;
-  nama: string;
-  role: Role;
-  halqah: string | null;
+const productionUrl = "https://tahfidz.baitulquranalikhwan.cloud"; // Assuming production URL
+
+function sanitizeUrl(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const markdownMatch = raw.match(/\[.*?\]\((https?:\/\/[^\)]+)\)/);
+  if (markdownMatch) return markdownMatch[1].trim();
+  return raw.replace(/^\[|\]$/g, '').trim();
 }
 
-export function hashPassword(plain: string): string {
-  return bcrypt.hashSync(plain, 10);
-}
+const baseUrl = sanitizeUrl(process.env.BETTER_AUTH_URL)
+  || sanitizeUrl(process.env.APP_URL)
+  || "http://localhost:4000";
 
-export function verifyPassword(plain: string, hash: string): boolean {
-  return bcrypt.compareSync(plain, hash);
-}
-
-export function signToken(user: JwtUser): string {
-  return jwt.sign(user, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as any });
-}
-
-export function verifyToken(token: string): JwtUser | null {
-  try {
-    return jwt.verify(token, env.JWT_SECRET) as JwtUser;
-  } catch {
-    return null;
-  }
-}
+export const auth = betterAuth({
+    baseURL: baseUrl,
+    database: drizzleAdapter(db, {
+        provider: "sqlite",
+        schema: {
+            ...schema
+        }
+    }),
+    emailAndPassword: {
+        enabled: true,
+    },
+    socialProviders: {
+        google: {
+            clientId: process.env.GOOGLE_CLIENT_ID || "",
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+        }
+    },
+    trustedOrigins: [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        sanitizeUrl(process.env.APP_URL) || productionUrl,
+        productionUrl,
+    ].filter((v, i, arr): v is string => typeof v === 'string' && v.length > 0 && arr.indexOf(v) === i)
+});
