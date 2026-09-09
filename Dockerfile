@@ -7,7 +7,7 @@ WORKDIR /app/server
 # Install build tools for better-sqlite3
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
-COPY server/package*.json server/tsconfig.json ./
+COPY server/package*.json server/tsconfig.json server/drizzle.config.ts ./
 RUN npm ci
 
 COPY server/src ./src
@@ -47,11 +47,12 @@ RUN mkdir -p /app/data
 RUN apt-get update && apt-get install -y python3 make g++ curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/server
 COPY server/package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --include=dev
 
 # Copy API Server dist and files
 COPY --from=api-builder /app/server/dist ./dist
 COPY --from=api-builder /app/server/src/db ./src/db
+COPY --from=api-builder /app/server/drizzle.config.ts ./drizzle.config.ts
 
 # Copy Next.js Standalone
 WORKDIR /app/bqa-app

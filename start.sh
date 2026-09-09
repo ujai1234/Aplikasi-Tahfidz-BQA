@@ -1,7 +1,10 @@
 #!/bin/bash
 
-echo "Starting Express API on port 4000..."
+echo "Running database migrations..."
 cd /app/server
+npm run db:push
+
+echo "Starting Express API on port 4000..."
 PORT=4000 node dist/index.js &
 API_PID=$!
 
