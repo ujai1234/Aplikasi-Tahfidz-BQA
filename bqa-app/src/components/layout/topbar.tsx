@@ -1,10 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, LogOut, Menu, Search, Settings, UserRound } from "lucide-react";
+import { Bell, KeyRound, LogOut, Menu, Search, Settings, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   DropdownMenu,
@@ -18,15 +28,38 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/components/providers/auth-provider";
 import { initialsOf } from "@/lib/utils";
 import { roleVariantLabel } from "@/lib/user-utils";
+import { api } from "@/lib/api";
 
 export function Topbar({ onMenu }: { onMenu: () => void }) {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogout = () => {
     logout();
     toast.info("Anda telah keluar dari sistem. Barakallah!");
     router.push("/login");
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      toast.warning("Password minimal 6 karakter");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await api.auth.updatePassword(newPassword);
+      toast.success("Password berhasil diperbarui! Silakan gunakan password baru pada sesi berikutnya.");
+      setPasswordOpen(false);
+      setNewPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Gagal memperbarui password");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -108,6 +141,9 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
             >
               <UserRound /> Profil Saya
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setPasswordOpen(true)}>
+              <KeyRound /> Ubah Password
+            </DropdownMenuItem>
             {user?.role === "Admin" && (
               <DropdownMenuItem asChild>
                 <Link href="/pengaturan">
@@ -122,6 +158,38 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <Dialog open={passwordOpen} onOpenChange={setPasswordOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ubah Password</DialogTitle>
+            <DialogDescription>
+              Ubah password akun <strong>{user?.username}</strong>. Password minimal 6 karakter.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdatePassword}>
+            <div className="py-4">
+              <Input
+                type="text"
+                placeholder="Masukkan password baru..."
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoFocus
+                required
+                minLength={6}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setPasswordOpen(false)}>
+                Batal
+              </Button>
+              <Button type="submit" disabled={isSubmitting || newPassword.length < 6}>
+                {isSubmitting ? "Menyimpan..." : "Simpan Password"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

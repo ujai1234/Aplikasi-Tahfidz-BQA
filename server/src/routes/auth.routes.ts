@@ -152,3 +152,19 @@ authRouter.post("/refresh", requireAuth, (req, res) => {
 
   res.json({ token, user: publicUser(user) });
 });
+
+authRouter.put(
+  "/password",
+  requireAuth,
+  validateBody(z.object({ password: z.string().min(6, "Password minimal 6 karakter") })),
+  (req, res) => {
+    const { password } = req.body;
+    db.update(users)
+      .set({ passwordHash: hashPassword(password), updatedAt: wibParts().timestamp })
+      .where(eq(users.id, req.user!.id))
+      .run();
+
+    writeAudit(req.user!, "update_password", "Berhasil mengubah password sendiri");
+    res.json({ ok: true });
+  }
+);

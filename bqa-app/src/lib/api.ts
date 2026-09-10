@@ -263,6 +263,12 @@ export const api = {
       setToken(data.token);
       return data;
     },
+    updatePassword(password: string) {
+      return request<{ ok: boolean }>("/auth/password", {
+        method: "PUT",
+        body: JSON.stringify({ password }),
+      });
+    },
   },
 
   users: {
