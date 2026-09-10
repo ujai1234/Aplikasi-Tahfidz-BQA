@@ -3,7 +3,7 @@ import { eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db";
 import { users } from "../db/schema";
-import { signToken, verifyPassword, auth } from "../lib/auth";
+import { signToken, verifyPassword, auth, hashPassword } from "../lib/auth";
 import { writeAudit } from "../lib/audit";
 import { HttpError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
