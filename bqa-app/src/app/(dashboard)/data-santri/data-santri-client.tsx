@@ -47,20 +47,24 @@ const TINGKATAN_FILTER = [
 ];
 
 function MasterPanel() {
+  const { user } = useAuth();
+  const isUstadz = user?.role === "Ustadz" || user?.role === "Ustadzah";
+  
   const [q, setQ] = useState("");
   const [halqah, setHalqah] = useState("");
   const [tingkatan, setTingkatan] = useState("");
   const [status, setStatus] = useState("");
 
+  const activeHalqah = isUstadz ? (user?.halqah || undefined) : (halqah === "" || halqah === "Semua Halqah" ? undefined : halqah);
+  const activeTingkatan = isUstadz ? undefined : (tingkatan.startsWith("Tingkat ") ? Number(tingkatan.replace("Tingkat ", "")) : undefined);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["santri", { q, halqah, tingkatan, status }],
+    queryKey: ["santri", { q, halqah: activeHalqah, tingkatan: activeTingkatan, status }],
     queryFn: () =>
       api.santri.list({
         q: q || undefined,
-        halqah: halqah === "" || halqah === "Semua Halqah" ? undefined : halqah,
-        tingkatan: tingkatan.startsWith("Tingkat ")
-          ? Number(tingkatan.replace("Tingkat ", ""))
-          : undefined,
+        halqah: activeHalqah,
+        tingkatan: activeTingkatan,
         status: status === "" || status === "Semua Status" ? undefined : (status as "Aktif" | "Tidak Aktif"),
       }),
   });
@@ -88,16 +92,20 @@ function MasterPanel() {
           label="Cari santri"
           onValueChange={setQ}
         />
-        <FilterSelect
-          label="Filter halqah"
-          options={["Semua Halqah", ...HALQAH_OPTIONS]}
-          onValueChange={setHalqah}
-        />
-        <FilterSelect
-          label="Filter tingkatan"
-          options={TINGKATAN_FILTER}
-          onValueChange={setTingkatan}
-        />
+        {!isUstadz && (
+          <FilterSelect
+            label="Filter halqah"
+            options={["Semua Halqah", ...HALQAH_OPTIONS]}
+            onValueChange={setHalqah}
+          />
+        )}
+        {!isUstadz && (
+          <FilterSelect
+            label="Filter tingkatan"
+            options={TINGKATAN_FILTER}
+            onValueChange={setTingkatan}
+          />
+        )}
         <FilterSelect
           label="Filter status"
           options={["Semua Status", "Aktif", "Tidak Aktif"]}
@@ -160,17 +168,22 @@ function MasterPanel() {
 }
 
 function RiwayatPanel() {
+  const { user } = useAuth();
+  const isUstadz = user?.role === "Ustadz" || user?.role === "Ustadzah";
+
   const [tanggal, setTanggal] = useState("");
   const [halqah, setHalqah] = useState("");
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
 
+  const activeHalqah = isUstadz ? (user?.halqah || undefined) : (halqah === "" || halqah === "Semua Halqah" ? undefined : halqah);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["evaluasi", { tanggal, halqah, status, q }],
+    queryKey: ["evaluasi", { tanggal, halqah: activeHalqah, status, q }],
     queryFn: () =>
       api.evaluasi.list({
         tanggal: tanggal || undefined,
-        halqah: halqah === "" || halqah === "Semua Halqah" ? undefined : halqah,
+        halqah: activeHalqah,
         status: status === "" || status === "Semua Status" ? undefined : status,
         q: q || undefined,
       }),
@@ -193,11 +206,13 @@ function RiwayatPanel() {
           value={tanggal}
           onValueChange={setTanggal}
         />
-        <FilterSelect
-          label="Filter halqah"
-          options={["Semua Halqah", ...HALQAH_OPTIONS]}
-          onValueChange={setHalqah}
-        />
+        {!isUstadz && (
+          <FilterSelect
+            label="Filter halqah"
+            options={["Semua Halqah", ...HALQAH_OPTIONS]}
+            onValueChange={setHalqah}
+          />
+        )}
         <FilterSelect
           label="Filter status capaian"
           options={["Semua Status", "Tuntas", "Sedang", "Recovery"]}

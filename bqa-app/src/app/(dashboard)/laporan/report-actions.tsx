@@ -88,6 +88,8 @@ async function fetchData(
 
 export function ReportActions({ title, kind }: { title: string; kind: Kind }) {
   const exportCsv = async () => {
+    // Open a blank window synchronously for iOS Safari bypass (optional for CSV, but safe)
+    // Actually for CSV, appending to DOM is usually enough. Let's just append.
     try {
       toast.info(`Menyiapkan laporan "${title}"…`);
       const rows = await fetchData(kind);
@@ -101,7 +103,10 @@ export function ReportActions({ title, kind }: { title: string; kind: Kind }) {
       const a = document.createElement("a");
       a.href = url;
       a.download = `laporan-${kind}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success(`Laporan "${title}" berhasil diekspor (${rows.length} baris)`);
     } catch (err) {
@@ -110,19 +115,29 @@ export function ReportActions({ title, kind }: { title: string; kind: Kind }) {
   };
 
   const cetakPdf = async () => {
+    // Safari iOS requires window.open to be synchronous with the user interaction.
+    // So we open it BEFORE the async fetchData.
+    let win: Window | null = null;
     try {
+      win = window.open("", "_blank");
+      if (!win) {
+        toast.error("Popup diblokir — izinkan popup pada browser Anda untuk mencetak");
+        return;
+      }
+      win.document.write("<html><body><p style='font-family:sans-serif;'>Menyiapkan data cetak...</p></body></html>");
+      
       toast.info(`Membuka pratinjau cetak "${title}"…`);
       const rows = await fetchData(kind);
+      
       if (rows.length === 0) {
         toast.warning("Tidak ada data untuk dicetak");
+        win.close();
         return;
       }
       const headers = Object.keys(rows[0]!);
-      const win = window.open("", "_blank");
-      if (!win) {
-        toast.error("Popup diblokir — izinkan popup untuk mencetak");
-        return;
-      }
+      
+      // Overwrite the loading text
+      win.document.open();
       win.document.write(`<html dir="ltr"><head><title>${title}</title>
         <style>
           body{font-family:system-ui,sans-serif;padding:24px}
@@ -146,6 +161,7 @@ export function ReportActions({ title, kind }: { title: string; kind: Kind }) {
         </body></html>`);
       win.document.close();
     } catch (err) {
+      if (win) win.close();
       toast.error(errorMessage(err));
     }
   };

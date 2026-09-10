@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -81,11 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [session?.user, sessionPending]);
 
+  const warningShownRef = useRef(false);
+
   // Periodic session check only if using legacy token (not Better Auth)
   useEffect(() => {
     if (!legacyUser || session?.user) return;
-
-    let warningShown = false;
 
     const interval = setInterval(() => {
       const remaining = getSessionTimeRemainingMs();
@@ -93,16 +94,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (remaining <= 0 || !getToken()) {
         logout();
         toast.error("Sesi Anda telah berakhir. Silakan login kembali.");
-      } else if (remaining <= 60000 && !warningShown) {
-        warningShown = true;
+      } else if (remaining <= 60000 && !warningShownRef.current) {
+        warningShownRef.current = true;
         toast.warning("Sesi Anda akan berakhir dalam 1 menit", {
-          duration: 15000,
+          id: "session-warning",
+          duration: 5000,
           action: {
             label: "Perpanjang",
             onClick: () => {
               api.auth.refresh().then(() => {
                 toast.success("Sesi berhasil diperpanjang");
-                warningShown = false;
+                warningShownRef.current = false;
               }).catch(() => {
                 toast.error("Gagal memperpanjang sesi");
                 logout();
