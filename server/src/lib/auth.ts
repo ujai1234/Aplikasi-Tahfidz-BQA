@@ -56,6 +56,7 @@ export const auth = betterAuth({
             ...schema
         }
     }),
+    secret: process.env.BETTER_AUTH_SECRET || process.env.JWT_SECRET || "default_bqa_secret_key_123_change_me_in_production",
     emailAndPassword: {
         enabled: true,
     },
