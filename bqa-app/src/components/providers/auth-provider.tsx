@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
-import { api, clearToken, getToken, type PublicUser } from "@/lib/api";
+import { api, clearToken, getToken, getSessionTimeRemainingMs, type PublicUser } from "@/lib/api";
 import { useSession, signOut as betterSignOut } from "@/lib/auth-client";
 
 interface AuthContextValue {
@@ -85,10 +85,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!legacyUser || session?.user) return;
 
+    let warningShown = false;
+
     const interval = setInterval(() => {
-      if (!getToken()) {
+      const remaining = getSessionTimeRemainingMs();
+      
+      if (remaining <= 0 || !getToken()) {
         logout();
         toast.error("Sesi Anda telah berakhir. Silakan login kembali.");
+      } else if (remaining <= 60000 && !warningShown) {
+        warningShown = true;
+        toast.warning("Sesi Anda akan berakhir dalam 1 menit", {
+          duration: 15000,
+          action: {
+            label: "Perpanjang",
+            onClick: () => {
+              api.auth.refresh().then(() => {
+                toast.success("Sesi berhasil diperpanjang");
+                warningShown = false;
+              }).catch(() => {
+                toast.error("Gagal memperpanjang sesi");
+                logout();
+              });
+            },
+          },
+        });
       }
     }, 3000);
 

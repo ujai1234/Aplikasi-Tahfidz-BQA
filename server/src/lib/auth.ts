@@ -24,7 +24,7 @@ export function verifyPassword(password: string, hash: string): boolean {
 }
 
 export function signToken(user: Omit<JwtUser, "iat" | "exp">): string {
-  return jwt.sign(user, process.env.JWT_SECRET || "default_secret", { expiresIn: "7d" });
+  return jwt.sign(user, process.env.JWT_SECRET || "default_secret", { expiresIn: "5m" });
 }
 
 export function verifyToken(token: string): JwtUser | null {
@@ -59,6 +59,10 @@ export const auth = betterAuth({
     secret: process.env.BETTER_AUTH_SECRET || process.env.JWT_SECRET || "default_bqa_secret_key_123_change_me_in_production",
     emailAndPassword: {
         enabled: true,
+    },
+    session: {
+        expiresIn: 300, // 5 menit
+        updateAge: 60,  // perpanjang otomatis jika aktif tiap 1 menit
     },
     socialProviders: {
         google: {

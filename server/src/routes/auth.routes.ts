@@ -130,3 +130,25 @@ authRouter.get("/me", requireAuth, (req, res) => {
     serverTime: wibParts().timestamp,
   });
 });
+
+authRouter.post("/refresh", requireAuth, (req, res) => {
+  const user = db
+    .select()
+    .from(users)
+    .where(eq(users.id, req.user!.id))
+    .get();
+
+  if (!user || user.status !== "Aktif") {
+    throw new HttpError(401, "Sesi tidak valid atau akun dinonaktifkan");
+  }
+
+  const token = signToken({
+    id: user.id,
+    username: user.username,
+    nama: user.nama,
+    role: user.role,
+    halqah: user.halqah,
+  });
+
+  res.json({ token, user: publicUser(user) });
+});

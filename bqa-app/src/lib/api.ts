@@ -185,7 +185,7 @@ export function clearToken(): void {
   localStorage.removeItem(SESSION_START_KEY);
 }
 
-export function getSessionTimeRemainingRemainingMs(): number {
+export function getSessionTimeRemainingMs(): number {
   if (typeof window === "undefined") return 0;
   const sessionStart = localStorage.getItem(SESSION_START_KEY);
   if (!sessionStart) return 0;
@@ -254,6 +254,14 @@ export const api = {
     },
     me() {
       return request<{ user: PublicUser; serverTime: string }>("/auth/me");
+    },
+    async refresh() {
+      const data = await request<{ token: string; user: PublicUser }>(
+        "/auth/refresh",
+        { method: "POST" }
+      );
+      setToken(data.token);
+      return data;
     },
   },
 
