@@ -33,7 +33,7 @@ export async function requireAuth(
   
   // Try Better Auth
   try {
-    const session = await auth.api.getSession({ headers: req.headers });
+    const session = await auth.api.getSession({ headers: new Headers(req.headers as any) });
     if (!session || !session.user) {
        res.status(401).json({ error: "Sesi tidak valid — silakan login via Google" });
        return;
