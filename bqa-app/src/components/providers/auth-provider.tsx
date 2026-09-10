@@ -41,35 +41,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // If we have a valid Better Auth session, fetch the backend to resolve the Tahfidz user
-    // because Better Auth 'session.user' only contains Google profile data.
-    if (session?.user) {
-       api.auth.me()
-         .then((res) => {
-            setLegacyUser(res.user);
-            setLegacyLoading(false);
-         })
-         .catch(() => {
-            setLegacyUser(null);
-            setLegacyLoading(false);
-         });
-       return;
-    }
-    
-    // Fallback to legacy JWT logic
-    if (!getToken()) {
-      setLegacyLoading(false);
+    // If we already have a JWT token (from manual login or previous google login), use it
+    if (getToken()) {
+      api.auth
+        .me()
+        .then((res) => setLegacyUser(res.user))
+        .catch(() => {
+          clearToken();
+          setLegacyUser(null);
+        })
+        .finally(() => setLegacyLoading(false));
       return;
     }
-    api.auth
-      .me()
-      .then((res) => setLegacyUser(res.user))
-      .catch(() => {
-        clearToken();
-        setLegacyUser(null);
-      })
-      .finally(() => setLegacyLoading(false));
-  }, [session?.user]);
+
+    // If no JWT token but there's a better-auth Google session,
+    // exchange it for a JWT token via the dedicated endpoint.
+    if (session?.user && !sessionPending) {
+      api.auth
+        .googleToken()
+        .then((res) => {
+          setLegacyUser(res.user);
+          setLegacyLoading(false);
+        })
+        .catch((err) => {
+          // Email not registered in Tahfidz system — show a helpful message
+          const msg = err?.message || "Email Google Anda belum terdaftar di sistem";
+          toast.error(msg);
+          setLegacyUser(null);
+          setLegacyLoading(false);
+          // Sign out of better-auth so user can try again
+          betterSignOut().catch(() => {});
+        });
+      return;
+    }
+
+    // No token and no Google session = not logged in
+    if (!sessionPending) {
+      setLegacyLoading(false);
+    }
+  }, [session?.user, sessionPending]);
 
   // Periodic session check only if using legacy token (not Better Auth)
   useEffect(() => {

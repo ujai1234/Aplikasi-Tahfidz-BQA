@@ -242,6 +242,16 @@ export const api = {
       setToken(data.token);
       return data;
     },
+    async googleToken() {
+      // Exchange the better-auth session cookie for a Tahfidz JWT token.
+      // This is called after Google OAuth callback completes.
+      const data = await request<{ token: string; user: PublicUser }>(
+        "/auth/google-token",
+        { method: "POST" }
+      );
+      setToken(data.token);
+      return data;
+    },
     me() {
       return request<{ user: PublicUser; serverTime: string }>("/auth/me");
     },

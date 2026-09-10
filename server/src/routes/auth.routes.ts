@@ -3,7 +3,7 @@ import { eq, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db";
 import { users } from "../db/schema";
-import { signToken, verifyPassword } from "../lib/auth";
+import { signToken, verifyPassword, auth } from "../lib/auth";
 import { writeAudit } from "../lib/audit";
 import { HttpError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
@@ -70,6 +70,50 @@ authRouter.post(
     res.json({ token, user: publicUser(user) });
   }
 );
+
+/**
+ * POST /api/auth/google-token
+ * Called by frontend after Google OAuth callback.
+ * Reads the better-auth session cookie, finds the matching Tahfidz user by email,
+ * and returns a standard JWT token so the rest of the app works identically to manual login.
+ */
+authRouter.post("/google-token", async (req, res) => {
+  try {
+    const session = await auth.api.getSession({ headers: new Headers(req.headers as any) });
+    if (!session?.user?.email) {
+      res.status(401).json({ error: "Sesi Google tidak ditemukan. Silakan login ulang." });
+      return;
+    }
+
+    const email = session.user.email;
+    const tUser = db.select().from(users).where(eq(users.email, email)).get();
+    if (!tUser) {
+      res.status(403).json({
+        error: `Email ${email} belum terdaftar di sistem Tahfidz BQA. Hubungi Admin untuk didaftarkan.`,
+      });
+      return;
+    }
+    if (tUser.status !== "Aktif") {
+      res.status(403).json({ error: "Akun dinonaktifkan — hubungi Admin" });
+      return;
+    }
+
+    const token = signToken({
+      id: tUser.id,
+      username: tUser.username,
+      nama: tUser.nama,
+      role: tUser.role,
+      halqah: tUser.halqah,
+    });
+
+    writeAudit({ id: tUser.id, username: tUser.username }, "login", "Login via Google berhasil");
+
+    res.json({ token, user: publicUser(tUser) });
+  } catch (err) {
+    console.error("[google-token]", err);
+    res.status(500).json({ error: "Gagal memverifikasi sesi Google" });
+  }
+});
 
 authRouter.get("/me", requireAuth, (req, res) => {
   const user = db
