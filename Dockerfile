@@ -1,14 +1,14 @@
 # ==========================================
 # Stage 1: Build API Server (Express)
 # ==========================================
-FROM node:20-bookworm-slim AS api-builder
+FROM node:22-bookworm-slim AS api-builder
 
 WORKDIR /app/server
 # Install build tools for better-sqlite3
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 COPY server/package*.json server/tsconfig.json server/drizzle.config.ts ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY server/src ./src
 RUN npm run build
@@ -16,11 +16,11 @@ RUN npm run build
 # ==========================================
 # Stage 2: Build Web Frontend (Next.js)
 # ==========================================
-FROM node:20-bookworm-slim AS web-builder
+FROM node:22-bookworm-slim AS web-builder
 
 WORKDIR /app/bqa-app
 COPY bqa-app/package*.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY bqa-app/ ./
 # We don't need NEXT_PUBLIC_API_URL here because we proxy /api to localhost:4000
@@ -30,7 +30,7 @@ RUN npm run build
 # ==========================================
 # Stage 3: Runner (Unified Container)
 # ==========================================
-FROM node:20-bookworm-slim AS runner
+FROM node:22-bookworm-slim AS runner
 
 WORKDIR /app
 
@@ -47,7 +47,7 @@ RUN mkdir -p /app/data
 RUN apt-get update && apt-get install -y python3 make g++ curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/server
 COPY server/package*.json ./
-RUN npm ci --include=dev
+RUN npm ci --include=dev --legacy-peer-deps
 
 # Copy API Server dist and files
 COPY --from=api-builder /app/server/dist ./dist
