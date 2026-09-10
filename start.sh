@@ -3,7 +3,7 @@
 echo "Running database migrations..."
 cd /app/server
 npm run db:push
-npm run db:seed
+node dist/db/seed.js
 
 echo "Starting Express API on port 4000..."
 PORT=4000 node dist/index.js &
