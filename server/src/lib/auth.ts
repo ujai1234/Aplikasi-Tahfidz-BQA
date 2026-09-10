@@ -46,10 +46,10 @@ function sanitizeUrl(raw: string | undefined): string | undefined {
 
 const baseUrl = sanitizeUrl(process.env.BETTER_AUTH_URL)
   || sanitizeUrl(process.env.APP_URL)
-  || "http://localhost:4000";
+  || (process.env.NODE_ENV === "production" ? productionUrl : "http://localhost:4000");
 
 export const auth = betterAuth({
-    baseURL: baseUrl,
+    baseURL: baseUrl.endsWith("/api/better-auth") ? baseUrl : `${baseUrl}/api/better-auth`,
     database: drizzleAdapter(db, {
         provider: "sqlite",
         schema: {
