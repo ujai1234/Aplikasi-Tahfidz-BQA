@@ -202,7 +202,7 @@ async function request<T>(
   if (options.body) headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const res = await fetch(`${API_URL}${path}`, { credentials: "include", ...options, headers });
   const data = res.headers.get("content-type")?.includes("application/json")
     ? await res.json().catch(() => null)
     : null;
