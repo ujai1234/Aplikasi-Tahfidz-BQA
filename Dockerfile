@@ -47,7 +47,11 @@ RUN mkdir -p /app/data
 RUN apt-get update && apt-get install -y python3 make g++ curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/server
 COPY server/package*.json ./
-RUN npm ci --include=dev --legacy-peer-deps
+# Only install production dependencies!
+RUN npm ci --omit=dev --legacy-peer-deps
+
+# Remove the compilation tools to save hundreds of megabytes of space
+RUN apt-get purge -y python3 make g++ && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy API Server dist and files
 COPY --from=api-builder /app/server/dist ./dist
