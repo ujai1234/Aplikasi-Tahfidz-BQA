@@ -90,7 +90,7 @@ evaluasiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) =>
       statusCapaian: body.statusCapaian,
       penyebab: body.penyebab ?? null,
       targetJuz:
-        body.targetJuz ?? `Juz ${Math.max(25, 31 - santri.tingkatan)}`,
+        body.targetJuz ?? (["0 Juz", "0 Juz", "2 Juz", "5 Juz", "9 Juz", "13 Juz", "15 Juz"][santri.tingkatan] || "15 Juz"),
       catatan: body.catatan ?? null,
       createdBy: req.user!.nama,
       createdAt: now.timestamp,
@@ -120,7 +120,7 @@ evaluasiRouter.get("/target", (req, res) => {
   const tingkatan = Number(req.query.tingkatan ?? 1);
   res.json({
     tingkatan,
-    targetJuz: `Juz ${Math.max(25, 31 - tingkatan)}`,
+    targetJuz: ["0 Juz", "0 Juz", "2 Juz", "5 Juz", "9 Juz", "13 Juz", "15 Juz"][tingkatan] || "15 Juz",
     keterangan: `Target kurikulum tingkat ${tingkatan}`,
   });
 });

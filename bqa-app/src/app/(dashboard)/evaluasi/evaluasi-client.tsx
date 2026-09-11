@@ -32,12 +32,12 @@ import { capaianVariant } from "@/lib/utils";
 import { tanggalIndo } from "@/lib/user-utils";
 
 const TARGET_KURIKULUM = [
-  { tingkat: 1, nama: "Juz 'Amma", detail: "Juz 30 · 37 surat pendek", target: "Juz 30" },
-  { tingkat: 2, nama: "Juz Tabarak", detail: "Juz 29 · 39 surat", target: "Juz 29" },
-  { tingkat: 3, nama: "Juz Qad Sami'a", detail: "Juz 28 · 9 surat", target: "Juz 28" },
-  { tingkat: 4, nama: "Juz Lanjutan", detail: "Juz 27 · Adz-Dzariyat", target: "Juz 27" },
-  { tingkat: 5, nama: "Juz Lanjutan", detail: "Juz 26 · Al-Ahqaf", target: "Juz 26" },
-  { tingkat: 6, nama: "Juz Lanjutan", detail: "Juz 25 · Fussilat", target: "Juz 25" },
+  { tingkat: 1, nama: "Tahsin & Gharib", detail: "Tajwid Praktis", target: "0 Juz" },
+  { tingkat: 2, nama: "Tahfidz Transisi", detail: "Juz 30 & 29", target: "2 Juz" },
+  { tingkat: 3, nama: "Tahfidz Akselerasi", detail: "Juz 28, 1, & 2", target: "5 Juz" },
+  { tingkat: 4, nama: "Tahfidz Intensif", detail: "Juz 3, 4, 5, & 6", target: "9 Juz" },
+  { tingkat: 5, nama: "Tahfidz Intensif", detail: "Juz 7, 8, 9, & 10", target: "13 Juz" },
+  { tingkat: 6, nama: "Tahfidz Final", detail: "Juz 11 & 12", target: "15 Juz" },
 ];
 
 function evaluasiWindowOpen(
