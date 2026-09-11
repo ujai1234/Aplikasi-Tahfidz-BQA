@@ -14,6 +14,7 @@ import { tasmiRouter } from "./routes/tasmi.routes";
 import { settingsRouter } from "./routes/settings.routes";
 import { dashboardRouter } from "./routes/dashboard.routes";
 import { backupRouter } from "./routes/backup.routes";
+import { payrollRouter } from "./routes/payroll.routes";
 
 export function createApp() {
   const app = express();
@@ -43,6 +44,8 @@ export function createApp() {
   app.use("/api/settings", settingsRouter);
   app.use("/api/dashboard", dashboardRouter);
   app.use("/api/backup", backupRouter);
+  // Endpoint khusus untuk integrasi HRIS Payroll
+  app.use("/api/payroll", payrollRouter);
 
   app.use((_req, res) => {
     res.status(404).json({ error: "Endpoint tidak ditemukan" });
