@@ -207,7 +207,7 @@ export function PresensiTimeForm() {
               <Input {...field("presensi_maghrib_selesai")} />
             </Field>
           </div>
-          <p className="text-xs leading-relaxed text-muted-foreground">
+          <p className="text-[11.5px] font-medium text-slate-500 mt-3 border-t pt-3">
             Sabtu–Minggu libur. Hari Jumat berlaku sesi khusus (jam diatur terpisah:
             presensi_jumat_mulai / presensi_jumat_selesai).
           </p>
