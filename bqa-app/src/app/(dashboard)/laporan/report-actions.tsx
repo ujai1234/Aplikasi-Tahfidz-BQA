@@ -114,7 +114,7 @@ export function ReportActions({ title, kind }: { title: string; kind: Kind }) {
     }
   };
 
-  const cetakPdf = async () => {
+  const cetakPdf = () => {
     // Safari iOS requires window.open to be synchronous with the user interaction.
     // So we open it BEFORE the async fetchData.
     let win: Window | null = null;
@@ -126,40 +126,50 @@ export function ReportActions({ title, kind }: { title: string; kind: Kind }) {
       }
       win.document.write("<html><body><p style='font-family:sans-serif;'>Menyiapkan data cetak...</p></body></html>");
       
-      toast.info(`Membuka pratinjau cetak "${title}"…`);
-      const rows = await fetchData(kind);
-      
-      if (rows.length === 0) {
-        toast.warning("Tidak ada data untuk dicetak");
-        win.close();
-        return;
-      }
-      const headers = Object.keys(rows[0]!);
-      
-      // Overwrite the loading text
-      win.document.open();
-      win.document.write(`<html dir="ltr"><head><title>${title}</title>
-        <style>
-          body{font-family:system-ui,sans-serif;padding:24px}
-          h1{font-size:18px;margin-bottom:4px}
-          p{color:#666;font-size:12px;margin-top:0}
-          table{border-collapse:collapse;width:100%;font-size:11px}
-          th,td{border:1px solid #ccc;padding:5px 8px;text-align:left}
-          th{background:#f0f4f2}
-        </style></head><body>
-        <h1>${title}</h1>
-        <p>Pesantren Baitul Qur'an Al-Ikhwan · Dicetak ${new Date().toLocaleString("id-ID")}</p>
-        <table><thead><tr>${headers
-          .map((h) => `<th>${h}</th>`)
-          .join("")}</tr></thead><tbody>${rows
-        .map(
-          (row) =>
-            `<tr>${headers.map((h) => `<td>${String(row[h] ?? "")}</td>`).join("")}</tr>`
-        )
-        .join("")}</tbody></table>
-        <script>window.onload=()=>window.print()</script>
-        </body></html>`);
-      win.document.close();
+      // Do the async fetch inside an IIFE so the outer function remains sync
+      (async () => {
+        try {
+          toast.info(`Membuka pratinjau cetak "${title}"…`);
+          const rows = await fetchData(kind);
+          
+          if (rows.length === 0) {
+            toast.warning("Tidak ada data untuk dicetak");
+            if (win) win.close();
+            return;
+          }
+          const headers = Object.keys(rows[0]!);
+          
+          // Overwrite the loading text
+          if (win) {
+            win.document.open();
+            win.document.write(`<html dir="ltr"><head><title>${title}</title>
+              <style>
+                body{font-family:system-ui,sans-serif;padding:24px}
+                h1{font-size:18px;margin-bottom:4px}
+                p{color:#666;font-size:12px;margin-top:0}
+                table{border-collapse:collapse;width:100%;font-size:11px}
+                th,td{border:1px solid #ccc;padding:5px 8px;text-align:left}
+                th{background:#f0f4f2}
+              </style></head><body>
+              <h1>${title}</h1>
+              <p>Pesantren Baitul Qur'an Al-Ikhwan · Dicetak ${new Date().toLocaleString("id-ID")}</p>
+              <table><thead><tr>${headers
+                .map((h) => `<th>${h}</th>`)
+                .join("")}</tr></thead><tbody>${rows
+              .map(
+                (row) =>
+                  `<tr>${headers.map((h) => `<td>${String(row[h] ?? "")}</td>`).join("")}</tr>`
+              )
+              .join("")}</tbody></table>
+              <script>window.onload=()=>window.print()</script>
+              </body></html>`);
+            win.document.close();
+          }
+        } catch (err) {
+          if (win) win.close();
+          toast.error(errorMessage(err));
+        }
+      })();
     } catch (err) {
       if (win) win.close();
       toast.error(errorMessage(err));

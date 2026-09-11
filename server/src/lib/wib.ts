@@ -6,7 +6,8 @@ export interface WibParts {
 }
 
 export function wibNow(): Date {
-  return new Date(Date.now() + (new Date().getTimezoneOffset() + 420) * 60_000);
+  // Always shift UTC epoch by +7 hours (420 minutes) to get WIB time components using getUTC* methods
+  return new Date(Date.now() + 420 * 60_000);
 }
 
 export function wibParts(input: Date = wibNow()): WibParts {
