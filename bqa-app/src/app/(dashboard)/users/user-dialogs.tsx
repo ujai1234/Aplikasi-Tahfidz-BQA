@@ -42,12 +42,19 @@ import {
 const ROLES = ["Admin", "Ustadz", "Ustadzah", "Kepsek"];
 
 export const HALQAH_OPTIONS = [
-  "Al-Fatih",
-  "Al-Baqarah",
-  "An-Nahl",
-  "Maryam",
-  "Yasin",
-  "Thaha",
+  "Semua",
+  "Halqah 1 (Ikhwan)",
+  "Halqah 1 (Akhwat)",
+  "Halqah 2 (Ikhwan)",
+  "Halqah 2 (Akhwat)",
+  "Halqah 3 (Ikhwan)",
+  "Halqah 3 (Akhwat)",
+  "Halqah 4 (Ikhwan)",
+  "Halqah 4 (Akhwat)",
+  "Halqah 5 (Ikhwan)",
+  "Halqah 5 (Akhwat)",
+  "Halqah 6 (Ikhwan)",
+  "Halqah 6 (Akhwat)",
 ];
 
 export function AddUserButton() {
