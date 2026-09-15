@@ -45,12 +45,13 @@ for (const [key, value] of Object.entries(SETTING_DEFAULTS)) {
 }
 
 console.log("Menyematkan users…");
+const defaultPassword = process.env.DEFAULT_USER_PASSWORD || "123456";
 const userRows = db
   .insert(users)
   .values([
     {
       username: "zeikun98@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadz Hudzaifah",
       role: "Admin",
       halqah: null,
@@ -62,7 +63,7 @@ const userRows = db
     },
     {
       username: "hudzaifahnasrullah98@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadz Ahmad",
       role: "Ustadz",
       halqah: "Halqah 1 (Ikhwan)",
@@ -74,7 +75,7 @@ const userRows = db
     },
     {
       username: "itsmeqnby@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadzah Indah",
       role: "Ustadzah",
       halqah: "Halqah 2 (Akhwat)",
@@ -86,7 +87,7 @@ const userRows = db
     },
     {
       username: "zahid@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadz Zahid",
       role: "Ustadz",
       halqah: "Halqah 3 (Ikhwan)",
@@ -98,7 +99,7 @@ const userRows = db
     },
     {
       username: "muminah@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadzah Mu'minah",
       role: "Ustadzah",
       halqah: "Halqah 3 (Akhwat)",
@@ -110,7 +111,7 @@ const userRows = db
     },
     {
       username: "saif@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadz Saif",
       role: "Ustadz",
       halqah: "Halqah 4 (Ikhwan)",
@@ -122,7 +123,7 @@ const userRows = db
     },
     {
       username: "dara@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadzah Dara",
       role: "Ustadzah",
       halqah: "Halqah 4 (Akhwat)",
@@ -134,7 +135,7 @@ const userRows = db
     },
     {
       username: "ahadiat@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadz Hadi",
       role: "Ustadz",
       halqah: "Halqah 6 (Ikhwan)",
@@ -146,7 +147,7 @@ const userRows = db
     },
     {
       username: "khadijah@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadzah Khadijah",
       role: "Ustadzah",
       halqah: "Halqah 1 (Akhwat)",
@@ -158,7 +159,7 @@ const userRows = db
     },
     {
       username: "faisal@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadz Faisal",
       role: "Ustadz",
       halqah: "Halqah 2 (Ikhwan)",
@@ -170,7 +171,7 @@ const userRows = db
     },
     {
       username: "salman@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadz Salman",
       role: "Ustadz",
       halqah: "Halqah 5 (Ikhwan)",
@@ -182,7 +183,7 @@ const userRows = db
     },
     {
       username: "fatimah@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadzah Fatimah",
       role: "Ustadzah",
       halqah: "Halqah 5 (Akhwat)",
@@ -194,7 +195,7 @@ const userRows = db
     },
     {
       username: "aisyah@gmail.com",
-      passwordHash: hashPassword("123456"),
+      passwordHash: hashPassword(defaultPassword),
       nama: "Ustadzah Aisyah",
       role: "Ustadzah",
       halqah: "Halqah 6 (Akhwat)",
@@ -411,8 +412,8 @@ for (const seed of tasmiSeeds) {
 console.log("==============================================");
 console.log("Seed selesai!");
 console.log("Akun demo utama:");
-console.log("  Admin    : zeikun98@gmail.com / 123456");
-console.log("  Ustadz 1 : hudzaifahnasrullah98@gmail.com / 123456");
-console.log("  Ustadzah : itsmeqnby@gmail.com / 123456");
+console.log(`  Admin    : zeikun98@gmail.com / ${defaultPassword}`);
+console.log(`  Ustadz 1 : hudzaifahnasrullah98@gmail.com / ${defaultPassword}`);
+console.log(`  Ustadzah : itsmeqnby@gmail.com / ${defaultPassword}`);
 console.log(`WIB server: ${wibNow().toISOString()} (local)`);
 console.log("==============================================");
