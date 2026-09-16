@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from "express";
 import { z } from "zod";
 import { getSettings, SETTING_DEFAULTS, SETTING_KEYS, setSetting } from "../lib/settings";

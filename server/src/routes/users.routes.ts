@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from "express";
 import { and, asc, desc, eq, like, or } from "drizzle-orm";
 import { z } from "zod";

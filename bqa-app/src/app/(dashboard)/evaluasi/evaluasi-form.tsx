@@ -48,7 +48,7 @@ export function EvaluasiForm() {
   const mutation = useMutation({
     mutationFn: (values: EvaluasiFormValues) =>
       api.evaluasi.create({
-        santriId: Number(santriId),
+        santriId: santriId,
         sesi,
         statusCapaian,
         penyebab:

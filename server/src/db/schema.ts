@@ -24,24 +24,18 @@ export const users = sqliteTable(
 );
 
 export const masterSantri = sqliteTable(
-  "master_santri",
+  "students", // MAPPED TO HRIS STUDENTS TABLE
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: text("id").primaryKey(), // NOW UUID STRING
     nis: text("nis").notNull(),
-    nama: text("nama").notNull(),
-    halqah: text("halqah").notNull(),
-    tingkatan: integer("tingkatan").notNull(),
-    jalur: text("jalur", { enum: ["Reguler", "Akselerasi", "Khusus"] })
-      .notNull()
-      .default("Reguler"),
-    jenisKelamin: text("jenis_kelamin", {
-      enum: ["Laki-laki", "Perempuan"],
-    })
-      .notNull()
-      .default("Laki-laki"),
-    statusAktif: integer("status_aktif", { mode: "boolean" }).notNull().default(true),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
+    nama: text("name").notNull(),
+    halqah: text("halqah"),
+    tingkatan: integer("tingkatan"),
+    jalur: text("jalur").default("Reguler"),
+    jenisKelamin: text("gender").notNull().default("L"), // 'L' or 'P'
+    statusAktif: text("status").notNull().default("AKTIF"),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("created_at").notNull(), // fallback
   },
   (t) => ({
     nisIdx: uniqueIndex("master_santri_nis_idx").on(t.nis),
@@ -49,13 +43,13 @@ export const masterSantri = sqliteTable(
   })
 );
 
-export const dataSantri = sqliteTable(
-  "data_santri",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+import crypto from "crypto";
+
+export const dataSantri = sqliteTable("data_santri", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     tanggal: text("tanggal").notNull(),
     sesi: text("sesi", { enum: ["Subuh", "Maghrib"] }).notNull(),
-    santriId: integer("santri_id")
+    santriId: text("santri_id")
       .notNull()
       .references(() => masterSantri.id),
     namaSantri: text("nama_santri").notNull(),
@@ -77,10 +71,8 @@ export const dataSantri = sqliteTable(
   })
 );
 
-export const absensiUstadz = sqliteTable(
-  "absensi_ustadz",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+export const absensiUstadz = sqliteTable("absensi_ustadz", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     tanggal: text("tanggal").notNull(),
     jam: text("jam").notNull(),
     username: text("username").notNull(),
@@ -105,12 +97,10 @@ export const absensiUstadz = sqliteTable(
   })
 );
 
-export const dataTasmi = sqliteTable(
-  "data_tasmi",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+export const dataTasmi = sqliteTable("data_tasmi", {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     tanggal: text("tanggal").notNull(),
-    santriId: integer("santri_id")
+    santriId: text("santri_id")
       .notNull()
       .references(() => masterSantri.id),
     namaSantri: text("nama_santri").notNull(),

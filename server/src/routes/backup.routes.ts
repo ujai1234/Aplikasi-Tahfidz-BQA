@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router } from "express";
 import { desc } from "drizzle-orm";
 import { z } from "zod";

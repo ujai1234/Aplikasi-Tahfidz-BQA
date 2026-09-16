@@ -80,7 +80,7 @@ export function TasmiForm() {
   const mutation = useMutation({
     mutationFn: (values: { jenisTasmi: string; penguji: string; catatan: string }) =>
       api.tasmi.create({
-        santriId: Number(santriId),
+        santriId: santriId,
         jenisTasmi: values.jenisTasmi,
         nilai,
         penguji: values.penguji || null,

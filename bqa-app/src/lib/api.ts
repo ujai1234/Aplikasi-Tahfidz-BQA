@@ -17,7 +17,7 @@ export interface PublicUser {
 }
 
 export interface Santri {
-  id: number;
+  id: string; // Was number, now UUID
   nis: string;
   nama: string;
   halqah: string;
@@ -31,7 +31,7 @@ export interface Evaluasi {
   id: number;
   tanggal: string;
   sesi: Sesi;
-  santriId: number;
+  santriId: string;
   namaSantri: string;
   tingkatan: number;
   halqah: string;
@@ -62,7 +62,7 @@ export interface Absensi {
 export interface Tasmi {
   id: number;
   tanggal: string;
-  santriId: number;
+  santriId: string;
   namaSantri: string;
   halqah: string;
   tingkatan: number;
@@ -343,7 +343,7 @@ export const api = {
       });
     },
     update(
-      id: number,
+      id: string,
       body: Partial<{
         nama: string;
         halqah: string;
@@ -358,13 +358,13 @@ export const api = {
         body: JSON.stringify(body),
       });
     },
-    mutasi(id: number, body: { halqah: string; tingkatan?: number }) {
+    mutasi(id: string, body: { halqah: string; tingkatan?: number }) {
       return request<{ santri: Santri }>(`/santri/${id}/mutasi`, {
         method: "PATCH",
         body: JSON.stringify(body),
       });
     },
-    remove(id: number) {
+    remove(id: string) {
       return request<{ ok: boolean }>(`/santri/${id}`, { method: "DELETE" });
     },
   },
@@ -384,7 +384,7 @@ export const api = {
       );
     },
     create(body: {
-      santriId: number;
+      santriId: string;
       sesi: Sesi;
       statusCapaian: CapaianStatus;
       penyebab?: string | null;
@@ -472,7 +472,7 @@ export const api = {
       }>(`/tasmi${qs(query)}`);
     },
     create(body: {
-      santriId: number;
+      santriId: string;
       jenisTasmi: string;
       nilai: number;
       catatan?: string | null;
