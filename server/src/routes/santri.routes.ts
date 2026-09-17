@@ -1,4 +1,5 @@
 // @ts-nocheck
+import crypto from "crypto";
 import { Router } from "express";
 import { and, asc, desc, eq, like, or } from "drizzle-orm";
 import { z } from "zod";
@@ -45,7 +46,7 @@ const mutasiSchema = z.object({
 function findSantriOr404(id: string) {
   const santri = db.select().from(masterSantri).where(eq(masterSantri.id, id)).get();
   if (!santri) throw new HttpError(404, "Santri tidak ditemukan");
-  return santri;
+  return { ...santri, statusAktif: santri.statusAktif === "AKTIF" };
 }
 
 santriRouter.use(requireAuth);
@@ -63,8 +64,8 @@ santriRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
     filters.push(eq(masterSantri.halqah, halqah));
   }
   if (tingkatan) filters.push(eq(masterSantri.tingkatan, tingkatan));
-  if (status === "Aktif") filters.push(eq(masterSantri.statusAktif, true));
-  if (status === "Tidak Aktif") filters.push(eq(masterSantri.statusAktif, false));
+  if (status === "Aktif") filters.push(eq(masterSantri.statusAktif, "AKTIF"));
+  if (status === "Tidak Aktif") filters.push(eq(masterSantri.statusAktif, "NONAKTIF"));
   if (q) {
     filters.push(
       or(like(masterSantri.nama, `%${q}%`), like(masterSantri.nis, `%${q}%`))!
@@ -78,7 +79,8 @@ santriRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
     .orderBy(asc(masterSantri.halqah), desc(masterSantri.id))
     .all();
 
-  res.json({ total: rows.length, data: rows });
+  const mappedRows = rows.map((r) => ({ ...r, statusAktif: r.statusAktif === "AKTIF" }));
+  res.json({ total: rows.length, data: mappedRows });
 });
 
 santriRouter.get("/:id", (req, res) => {
@@ -117,7 +119,7 @@ santriRouter.post(
 
     const inserted = db
       .insert(masterSantri)
-      .values({ ...body, statusAktif: true, createdAt: now, updatedAt: now })
+      .values({ ...body, id: crypto.randomUUID(), statusAktif: "AKTIF", createdAt: now, updatedAt: now })
       .returning()
       .get();
 
@@ -126,7 +128,7 @@ santriRouter.post(
       "santri.create",
       `Menambah santri ${body.nama} (NIS ${body.nis})`
     );
-    res.status(201).json({ santri: inserted });
+    res.status(201).json({ santri: { ...inserted, statusAktif: inserted.statusAktif === "AKTIF" } });
   }
 );
 
@@ -148,7 +150,7 @@ santriRouter.put(
         tingkatan: body.tingkatan ?? santri.tingkatan,
         jalur: body.jalur ?? santri.jalur,
         jenisKelamin: body.jenisKelamin ?? santri.jenisKelamin,
-        statusAktif: body.statusAktif ?? santri.statusAktif,
+        statusAktif: body.statusAktif !== undefined ? (body.statusAktif ? "AKTIF" : "NONAKTIF") : (santri.statusAktif ? "AKTIF" : "NONAKTIF"),
         updatedAt: wibParts().timestamp,
       })
       .where(eq(masterSantri.id, id))
@@ -156,7 +158,7 @@ santriRouter.put(
       .get();
 
     writeAudit(req.user!, "santri.update", `Mengubah data ${santri.nama}`);
-    res.json({ santri: updated });
+    res.json({ santri: { ...updated, statusAktif: updated.statusAktif === "AKTIF" } });
   }
 );
 
@@ -186,7 +188,7 @@ santriRouter.patch(
       "santri.mutasi",
       `Mutasi ${santri.nama}: ${santri.halqah} → ${body.halqah}`
     );
-    res.json({ santri: updated });
+    res.json({ santri: { ...updated, statusAktif: updated.statusAktif === "AKTIF" } });
   }
 );
 

@@ -14,7 +14,6 @@ import { getSettings, resolvePresensiSession } from "../lib/settings";
 import { wibDaysAgo, wibParts } from "../lib/wib";
 
 export const dashboardRouter = Router();
-
 dashboardRouter.get("/", requireAuth, (req, res) => {
   const user = req.user!;
   const scopedHalqah =
@@ -28,8 +27,8 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
     .from(masterSantri)
     .where(
       scopedHalqah
-        ? and(eq(masterSantri.statusAktif, true), eq(masterSantri.halqah, scopedHalqah))
-        : eq(masterSantri.statusAktif, true)
+        ? and(eq(masterSantri.statusAktif, "AKTIF"), eq(masterSantri.halqah, scopedHalqah))
+        : eq(masterSantri.statusAktif, "AKTIF")
     )
     .orderBy(asc(masterSantri.halqah))
     .all();
