@@ -60,31 +60,57 @@ tasmiRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
   const scopedHalqah = scopeHalqah(req.user!);
 
   const filters = [];
-  if (scopedHalqah) filters.push(eq(dataTasmi.halqah, scopedHalqah));
-  else if (halqah && halqah !== "Semua Halqah") filters.push(eq(dataTasmi.halqah, halqah));
+  if (scopedHalqah) filters.push(eq(masterSantri.halqah, scopedHalqah));
+  else if (halqah && halqah !== "Semua Halqah") filters.push(eq(masterSantri.halqah, halqah));
   if (jenis) filters.push(eq(dataTasmi.jenisTasmi, jenis));
-  if (kelulusan) filters.push(eq(dataTasmi.statusKelulusan, kelulusan));
-  if (q) filters.push(like(dataTasmi.namaSantri, `%${q}%`));
+  
+  if (kelulusan) {
+    const isPassed = kelulusan === "Lulus";
+    filters.push(eq(dataTasmi.statusKelulusan, isPassed));
+  }
+  
+  if (q) filters.push(like(masterSantri.nama, `%${q}%`));
 
   const rows = db
-    .select()
+    .select({
+      id: dataTasmi.id,
+      tanggal: dataTasmi.tanggal,
+      santriId: dataTasmi.santriId,
+      jenisTasmi: dataTasmi.jenisTasmi,
+      nilai: dataTasmi.nilai,
+      predikat: dataTasmi.predikat,
+      statusKelulusan: dataTasmi.statusKelulusan,
+      penguji: dataTasmi.penguji,
+      createdAt: dataTasmi.createdAt,
+      namaSantri: masterSantri.nama,
+      tingkatan: masterSantri.tingkatan,
+      halqah: masterSantri.halqah,
+    })
     .from(dataTasmi)
+    .innerJoin(masterSantri, eq(dataTasmi.santriId, masterSantri.id))
     .where(filters.length ? and(...filters) : undefined)
     .orderBy(desc(dataTasmi.tanggal), desc(dataTasmi.id))
     .limit(limit)
     .all();
 
-  const lulus = rows.filter((r) => r.statusKelulusan === "Lulus").length;
-  const rataRata = rows.length
-    ? Math.round((rows.reduce((sum, r) => sum + r.nilai, 0) / rows.length) * 10) / 10
+  const mappedRows = rows.map(r => ({
+    ...r,
+    statusKelulusan: r.statusKelulusan ? "Lulus" : "Tidak Lulus",
+    catatan: null,
+    createdBy: r.penguji
+  }));
+
+  const lulus = mappedRows.filter((r) => r.statusKelulusan === "Lulus").length;
+  const rataRata = mappedRows.length
+    ? Math.round((mappedRows.reduce((sum, r) => sum + r.nilai, 0) / mappedRows.length) * 10) / 10
     : 0;
 
   res.json({
-    total: rows.length,
+    total: mappedRows.length,
     lulus,
-    persenLulus: rows.length ? Math.round((lulus / rows.length) * 100) : 0,
+    persenLulus: mappedRows.length ? Math.round((lulus / mappedRows.length) * 100) : 0,
     rataRata,
-    data: rows,
+    data: mappedRows,
   });
 });
 
@@ -116,16 +142,11 @@ tasmiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) => {
     .values({
       tanggal: body.tanggal ?? now.date,
       santriId: santri.id,
-      namaSantri: santri.nama,
-      halqah: santri.halqah,
-      tingkatan: santri.tingkatan,
       jenisTasmi: body.jenisTasmi,
       nilai: body.nilai,
       predikat,
-      statusKelulusan: lulus ? "Lulus" : "Tidak Lulus",
-      catatan: body.catatan ?? null,
+      statusKelulusan: lulus,
       penguji: body.penguji ?? req.user!.nama,
-      createdBy: req.user!.nama,
       createdAt: now.timestamp,
     })
     .returning()
@@ -141,7 +162,13 @@ tasmiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) => {
 
 tasmiRouter.delete("/:id", requireWrite, ...requireAdmin, (req, res) => {
   const id = req.params.id;
-  const row = db.select().from(dataTasmi).where(eq(dataTasmi.id, id)).get();
+  
+  const row = db.select({
+    id: dataTasmi.id,
+    nilai: dataTasmi.nilai,
+    namaSantri: masterSantri.nama
+  }).from(dataTasmi).innerJoin(masterSantri, eq(dataTasmi.santriId, masterSantri.id)).where(eq(dataTasmi.id, id)).get();
+  
   if (!row) throw new HttpError(404, "Data tasmi' tidak ditemukan");
 
   db.delete(dataTasmi).where(eq(dataTasmi.id, id)).run();

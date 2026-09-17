@@ -33,13 +33,15 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
     .orderBy(asc(masterSantri.halqah))
     .all();
 
+  const santriMap = new Map(santriRows.map((s) => [s.id, s]));
+
   const evaluasiRows = db
     .select()
     .from(dataSantri)
     .orderBy(desc(dataSantri.tanggal), desc(dataSantri.id))
     .all();
 
-  const latestBySantri = new Map<number, typeof evaluasiRows[number]>();
+  const latestBySantri = new Map<string, typeof evaluasiRows[number]>();
   for (const row of evaluasiRows) {
     if (!latestBySantri.has(row.santriId)) latestBySantri.set(row.santriId, row);
   }
@@ -69,12 +71,12 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
       perluPerhatian.push({
         nis: santri.nis,
         nama: santri.nama,
-        halqah: santri.halqah,
-        tingkat: santri.tingkatan,
+        halqah: santri.halqah ?? "-",
+        tingkat: santri.tingkatan ?? 1,
         status,
         kendala: latest?.penyebab ?? "-",
-        target: latest?.targetJuz ?? `Juz ${Math.max(25, 31 - santri.tingkatan)}`,
-        catatan: latest?.catatan ?? "-",
+        target: `Juz ${Math.max(25, 31 - (santri.tingkatan ?? 1))}`,
+        catatan: "-",
       });
     }
   }
@@ -87,10 +89,13 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
     .all();
 
   const filteredTasmi = scopedHalqah
-    ? tasmiRows.filter((t) => t.halqah === scopedHalqah)
+    ? tasmiRows.filter((t) => {
+        const santri = santriMap.get(t.santriId);
+        return santri && santri.halqah === scopedHalqah;
+      })
     : tasmiRows;
 
-  const latestTasmiBySantri = new Map<number, typeof tasmiRows[number]>();
+  const latestTasmiBySantri = new Map<string, typeof tasmiRows[number]>();
   for (const t of filteredTasmi) {
     if (!latestTasmiBySantri.has(t.santriId)) latestTasmiBySantri.set(t.santriId, t);
   }
@@ -102,7 +107,8 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
   let rasibCount = 0;
 
   for (const t of latestTasmiBySantri.values()) {
-    if (t.statusKelulusan === "Lulus") tasmiLulus += 1;
+    if (t.statusKelulusan) tasmiLulus += 1;
+    
     if (t.predikat === "Mumtaz") mumtazCount += 1;
     else if (t.predikat === "Jayyid Jiddan") jayyidJiddanCount += 1;
     else if (t.predikat === "Jayyid") jayyidCount += 1;
@@ -169,13 +175,18 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
   const since = wibDaysAgo(7);
   const recentEvaluasi = evaluasiRows.filter((row) => row.tanggal >= since);
   const halqahAgg = new Map<string, { tuntas: number; total: number }>();
+  
   for (const row of recentEvaluasi) {
-    if (scopedHalqah && row.halqah !== scopedHalqah) continue;
-    const agg = halqahAgg.get(row.halqah) ?? { tuntas: 0, total: 0 };
+    const santri = santriMap.get(row.santriId);
+    if (!santri || !santri.halqah) continue;
+    if (scopedHalqah && santri.halqah !== scopedHalqah) continue;
+    
+    const agg = halqahAgg.get(santri.halqah) ?? { tuntas: 0, total: 0 };
     agg.total += 1;
     if (row.statusCapaian === "Tuntas") agg.tuntas += 1;
-    halqahAgg.set(row.halqah, agg);
+    halqahAgg.set(santri.halqah, agg);
   }
+  
   const capaianHalqah = [...halqahAgg.entries()]
     .map(([name, agg]) => ({
       name,
@@ -185,8 +196,10 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
 
   const distribusiMap = new Map<string, number>();
   for (const santri of santriRows) {
+    if (!santri.halqah) continue;
     distribusiMap.set(santri.halqah, (distribusiMap.get(santri.halqah) ?? 0) + 1);
   }
+  
   const totalSantri = santriRows.length || 1;
   const distribusiHalqah = [...distribusiMap.entries()]
     .map(([name, total]) => ({

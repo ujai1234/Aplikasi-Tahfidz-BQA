@@ -40,21 +40,42 @@ evaluasiRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
   const scopedHalqah = scopeHalqah(req.user!);
 
   const filters = [];
-  if (scopedHalqah) filters.push(eq(dataSantri.halqah, scopedHalqah));
-  else if (halqah && halqah !== "Semua Halqah") filters.push(eq(dataSantri.halqah, halqah));
+  if (scopedHalqah) filters.push(eq(masterSantri.halqah, scopedHalqah));
+  else if (halqah && halqah !== "Semua Halqah") filters.push(eq(masterSantri.halqah, halqah));
   if (tanggal) filters.push(eq(dataSantri.tanggal, tanggal));
   if (status) filters.push(eq(dataSantri.statusCapaian, status));
-  if (q) filters.push(like(dataSantri.namaSantri, `%${q}%`));
+  if (q) filters.push(like(masterSantri.nama, `%${q}%`));
 
   const rows = db
-    .select()
+    .select({
+      id: dataSantri.id,
+      tanggal: dataSantri.tanggal,
+      sesi: dataSantri.sesi,
+      santriId: dataSantri.santriId,
+      statusCapaian: dataSantri.statusCapaian,
+      penyebab: dataSantri.penyebab,
+      createdBy: dataSantri.createdBy,
+      juzCompleted: dataSantri.juzCompleted,
+      createdAt: dataSantri.createdAt,
+      namaSantri: masterSantri.nama,
+      tingkatan: masterSantri.tingkatan,
+      halqah: masterSantri.halqah,
+      jalur: masterSantri.jalur,
+    })
     .from(dataSantri)
+    .innerJoin(masterSantri, eq(dataSantri.santriId, masterSantri.id))
     .where(filters.length ? and(...filters) : undefined)
     .orderBy(desc(dataSantri.tanggal), desc(dataSantri.id))
     .limit(limit)
     .all();
 
-  res.json({ total: rows.length, data: rows });
+  const mappedRows = rows.map(r => ({
+    ...r,
+    catatan: null,
+    targetJuz: `Juz ${Math.max(25, 31 - (r.tingkatan ?? 1))}`
+  }));
+
+  res.json({ total: mappedRows.length, data: mappedRows });
 });
 
 evaluasiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) => {
@@ -84,16 +105,10 @@ evaluasiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) =>
       tanggal: body.tanggal ?? now.date,
       sesi: body.sesi,
       santriId: santri.id,
-      namaSantri: santri.nama,
-      tingkatan: santri.tingkatan,
-      halqah: santri.halqah,
-      jalur: santri.jalur,
       statusCapaian: body.statusCapaian,
       penyebab: body.penyebab ?? null,
-      targetJuz:
-        body.targetJuz ?? (["0 Juz", "0 Juz", "2 Juz", "5 Juz", "9 Juz", "13 Juz", "15 Juz"][santri.tingkatan] || "15 Juz"),
-      catatan: body.catatan ?? null,
       createdBy: req.user!.nama,
+      juzCompleted: 0,
       createdAt: now.timestamp,
     })
     .returning()
@@ -109,7 +124,12 @@ evaluasiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) =>
 
 evaluasiRouter.delete("/:id", requireWrite, ...requireAdmin, (req, res) => {
   const id = req.params.id;
-  const row = db.select().from(dataSantri).where(eq(dataSantri.id, id)).get();
+  const row = db.select({
+    id: dataSantri.id,
+    tanggal: dataSantri.tanggal,
+    namaSantri: masterSantri.nama
+  }).from(dataSantri).innerJoin(masterSantri, eq(dataSantri.santriId, masterSantri.id)).where(eq(dataSantri.id, id)).get();
+  
   if (!row) throw new HttpError(404, "Catatan evaluasi tidak ditemukan");
 
   db.delete(dataSantri).where(eq(dataSantri.id, id)).run();

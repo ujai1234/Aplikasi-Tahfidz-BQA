@@ -29,13 +29,13 @@ export const masterSantri = sqliteTable(
     id: text("id").primaryKey(), // NOW UUID STRING
     nis: text("nis").notNull(),
     nama: text("name").notNull(),
+    className: text("class_name").notNull().default("-"),
     halqah: text("halqah"),
     tingkatan: integer("tingkatan"),
     jalur: text("jalur").default("Reguler"),
     jenisKelamin: text("gender").notNull().default("L"), // 'L' or 'P'
     statusAktif: text("status").notNull().default("AKTIF"),
     createdAt: integer("created_at").notNull(),
-    updatedAt: integer("created_at").notNull(), // fallback
   },
   (t) => ({
     nisIdx: uniqueIndex("master_santri_nis_idx").on(t.nis),
@@ -45,29 +45,23 @@ export const masterSantri = sqliteTable(
 
 import crypto from "crypto";
 
-export const dataSantri = sqliteTable("data_santri", {
+export const dataSantri = sqliteTable("tahfidz_evaluations", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    tanggal: text("tanggal").notNull(),
-    sesi: text("sesi", { enum: ["Subuh", "Maghrib"] }).notNull(),
-    santriId: text("santri_id")
+    tanggal: text("date").notNull(),
+    sesi: text("session", { enum: ["Subuh", "Maghrib"] }).notNull(),
+    santriId: text("student_id")
       .notNull()
       .references(() => masterSantri.id),
-    namaSantri: text("nama_santri").notNull(),
-    tingkatan: integer("tingkatan").notNull(),
-    halqah: text("halqah").notNull(),
-    jalur: text("jalur").notNull().default("Reguler"),
-    statusCapaian: text("status_capaian", {
+    statusCapaian: text("status", {
       enum: ["Tuntas", "Sedang", "Recovery"],
     }).notNull(),
-    penyebab: text("penyebab"),
-    targetJuz: text("target_juz"),
-    catatan: text("catatan"),
-    createdBy: text("created_by").notNull(),
-    createdAt: text("created_at").notNull(),
+    penyebab: text("notes"),
+    createdBy: text("teacher_name").notNull(),
+    juzCompleted: integer("juz_completed").notNull().default(0),
+    createdAt: integer("created_at").notNull(),
   },
   (t) => ({
-    tanggalIdx: index("data_santri_tanggal_idx").on(t.tanggal),
-    halqahIdx: index("data_santri_halqah_idx").on(t.halqah),
+    tanggalIdx: index("tahfidz_eval_date_idx").on(t.tanggal),
   })
 );
 
@@ -97,31 +91,23 @@ export const absensiUstadz = sqliteTable("absensi_ustadz", {
   })
 );
 
-export const dataTasmi = sqliteTable("data_tasmi", {
+export const dataTasmi = sqliteTable("tahfidz_tasmi", {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    tanggal: text("tanggal").notNull(),
-    santriId: text("santri_id")
+    tanggal: text("date").notNull(),
+    santriId: text("student_id")
       .notNull()
       .references(() => masterSantri.id),
-    namaSantri: text("nama_santri").notNull(),
-    halqah: text("halqah").notNull(),
-    tingkatan: integer("tingkatan").notNull(),
-    jenisTasmi: text("jenis_tasmi", {
+    jenisTasmi: text("type", {
       enum: ["Pekanan", "Per 3 Bulan", "Per 6 Bulan"],
     }).notNull(),
-    nilai: integer("nilai").notNull(),
-    predikat: text("predikat").notNull(),
-    statusKelulusan: text("status_kelulusan", {
-      enum: ["Lulus", "Tidak Lulus"],
-    }).notNull(),
-    catatan: text("catatan"),
-    penguji: text("penguji"),
-    createdBy: text("created_by").notNull(),
-    createdAt: text("created_at").notNull(),
+    nilai: integer("score").notNull(),
+    predikat: text("predicate").notNull(),
+    statusKelulusan: integer("passed", { mode: 'boolean' }).notNull(),
+    penguji: text("examiner_name"),
+    createdAt: integer("created_at").notNull(),
   },
   (t) => ({
-    tanggalIdx: index("data_tasmi_tanggal_idx").on(t.tanggal),
-    halqahIdx: index("data_tasmi_halqah_idx").on(t.halqah),
+    tanggalIdx: index("tahfidz_tasmi_date_idx").on(t.tanggal),
   })
 );
 
@@ -131,7 +117,7 @@ export const settings = sqliteTable("settings", {
   updatedAt: text("updated_at").notNull(),
 });
 
-export const auditLogs = sqliteTable("audit_logs", {
+export const auditLogs = sqliteTable("tahfidz_audit_logs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id"),
   username: text("username").notNull(),

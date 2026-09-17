@@ -119,7 +119,7 @@ santriRouter.post(
 
     const inserted = db
       .insert(masterSantri)
-      .values({ ...body, id: crypto.randomUUID(), statusAktif: "AKTIF", createdAt: now, updatedAt: now })
+      .values({ ...body, id: crypto.randomUUID(), statusAktif: "AKTIF", createdAt: now })
       .returning()
       .get();
 
@@ -151,7 +151,6 @@ santriRouter.put(
         jalur: body.jalur ?? santri.jalur,
         jenisKelamin: body.jenisKelamin ?? santri.jenisKelamin,
         statusAktif: body.statusAktif !== undefined ? (body.statusAktif ? "AKTIF" : "NONAKTIF") : (santri.statusAktif ? "AKTIF" : "NONAKTIF"),
-        updatedAt: wibParts().timestamp,
       })
       .where(eq(masterSantri.id, id))
       .returning()
@@ -177,7 +176,6 @@ santriRouter.patch(
       .set({
         halqah: body.halqah,
         tingkatan: body.tingkatan ?? santri.tingkatan,
-        updatedAt: wibParts().timestamp,
       })
       .where(eq(masterSantri.id, id))
       .returning()
