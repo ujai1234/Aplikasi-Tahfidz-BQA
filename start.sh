@@ -1,9 +1,9 @@
 #!/bin/bash
 
-echo "Running database migrations..."
+echo "Checking database..."
 cd /app/server
-npm run db:push
 node dist/db/seed.js
+
 
 echo "Starting Express API on port 4000..."
 PORT=4000 node dist/index.js &
