@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Router } from "express";
-import { and, asc, desc, eq, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, like, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db";
 import { users } from "../db/schema";
@@ -25,7 +25,7 @@ const createSchema = z.object({
   username: z
     .string()
     .min(3, "Username minimal 3 karakter")
-    .regex(/^[a-z0-9.]+$/i, "Username hanya huruf, angka & titik"),
+    .regex(/^[a-z0-9._@-]+$/i, "Username hanya huruf, angka, titik, strip (-), garis bawah (_), atau @"),
   password: z.string().min(6, "Password minimal 6 karakter"),
   nama: z.string().min(1, "Nama wajib diisi"),
   role: z.enum(["Admin", "Ustadz", "Ustadzah", "Kepsek"]),
@@ -35,6 +35,11 @@ const createSchema = z.object({
 });
 
 const updateSchema = z.object({
+  username: z
+    .string()
+    .min(3, "Username minimal 3 karakter")
+    .regex(/^[a-z0-9._@-]+$/i, "Username hanya huruf, angka, titik, strip (-), garis bawah (_), atau @")
+    .optional(),
   nama: z.string().min(1).optional(),
   role: z.enum(["Admin", "Ustadz", "Ustadzah", "Kepsek"]).optional(),
   halqah: z.string().nullish(),
@@ -129,9 +134,32 @@ usersRouter.put("/:id", validateBody(updateSchema), (req, res) => {
   const body = req.body as z.infer<typeof updateSchema>;
   const user = findUserOr404(id);
 
+  if (body.username && body.username !== user.username) {
+    const existingUsername = db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(ne(users.id, id), eq(users.username, body.username)))
+      .get();
+    if (existingUsername) {
+      throw new HttpError(409, "Username sudah digunakan oleh user lain");
+    }
+  }
+
+  if (body.email && body.email !== user.email) {
+    const existingEmail = db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(ne(users.id, id), eq(users.email, body.email)))
+      .get();
+    if (existingEmail) {
+      throw new HttpError(409, "Email sudah digunakan oleh user lain");
+    }
+  }
+
   const updated = db
     .update(users)
     .set({
+      username: body.username ?? user.username,
       nama: body.nama ?? user.nama,
       role: body.role ?? user.role,
       halqah: body.halqah !== undefined ? body.halqah : user.halqah,
@@ -144,7 +172,7 @@ usersRouter.put("/:id", validateBody(updateSchema), (req, res) => {
     .returning()
     .get();
 
-  writeAudit(req.user!, "user.update", `Mengubah user ${user.username}`);
+  writeAudit(req.user!, "user.update", `Mengubah user ${updated.username}`);
   res.json({ user: publicUser(updated) });
 });
 

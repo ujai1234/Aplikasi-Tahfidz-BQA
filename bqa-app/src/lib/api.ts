@@ -294,6 +294,7 @@ export const api = {
     update(
       id: number,
       body: {
+        username?: string;
         nama?: string;
         role?: Role;
         halqah?: string | null;

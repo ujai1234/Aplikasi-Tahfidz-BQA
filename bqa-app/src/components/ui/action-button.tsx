@@ -7,11 +7,13 @@ export function ActionButton({
   icon: Icon,
   title,
   danger = false,
+  disabled = false,
   onClick,
 }: {
   icon: LucideIcon;
   title: string;
   danger?: boolean;
+  disabled?: boolean;
   onClick?: () => void;
 }) {
   return (
@@ -22,6 +24,7 @@ export function ActionButton({
           variant="outline"
           size="icon-sm"
           aria-label={title}
+          disabled={disabled}
           onClick={onClick}
           className={cn(
             "text-muted-foreground",

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { PublicUser } from "@/lib/api";
 import { api, errorMessage } from "@/lib/api";
@@ -59,6 +59,7 @@ export const HALQAH_OPTIONS = [
 
 export function AddUserButton() {
   const [open, setOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: api.users.create,
@@ -71,7 +72,13 @@ export function AddUserButton() {
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(val) => {
+        setOpen(val);
+        if (!val) setShowPassword(false);
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <Plus className="size-4" strokeWidth={2} />
@@ -117,7 +124,30 @@ export function AddUserButton() {
               <Input name="email" type="email" placeholder="nama@bqa.sch.id" />
             </Field>
             <Field label="Password Awal" required hint="Minimal 6 karakter.">
-              <Input name="password" type="text" required minLength={6} placeholder="mis. ustadz123" />
+              <div className="relative">
+                <Input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  placeholder="mis. ustadz123"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 transition-colors"
+                  aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
+                  title={showPassword ? "Sembunyikan password" : "Lihat password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
+              </div>
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -169,20 +199,32 @@ export function AddUserButton() {
 
 function EditUserDialog({ user }: { user: PublicUser }) {
   const [open, setOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: (body: Parameters<typeof api.users.update>[1]) =>
       api.users.update(user.id, body),
-    onSuccess: () => {
-      toast.success(`Akun ${user.username} berhasil diperbarui`);
+    onSuccess: (res, variables) => {
+      if (variables.password) {
+        toast.success(`Akun & password ${res.user.nama} berhasil diperbarui`);
+      } else {
+        toast.success(`Akun ${res.user.nama} berhasil diperbarui`);
+      }
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setOpen(false);
+      setShowPassword(false);
     },
     onError: (err) => toast.error(errorMessage(err)),
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(val) => {
+        setOpen(val);
+        if (!val) setShowPassword(false);
+      }}
+    >
       <DialogTrigger asChild>
         <ActionButton icon={Pencil} title={`Ubah akun ${user.nama}`} />
       </DialogTrigger>
@@ -190,7 +232,7 @@ function EditUserDialog({ user }: { user: PublicUser }) {
         <DialogHeader>
           <DialogTitle>Ubah Akun User</DialogTitle>
           <DialogDescription>
-            Perbarui data akun {user.username}. Kosongkan password jika tidak diubah.
+            Perbarui data akun {user.nama}. Kosongkan password jika tidak ingin mengubah password saat ini.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -198,27 +240,82 @@ function EditUserDialog({ user }: { user: PublicUser }) {
           onSubmit={(event) => {
             event.preventDefault();
             const f = new FormData(event.currentTarget);
+            const passwordVal = String(f.get("password") ?? "").trim();
             mutation.mutate({
               nama: String(f.get("nama") ?? "").trim(),
+              username: String(f.get("username") ?? "").trim(),
               email: String(f.get("email") ?? "").trim() || null,
               role: String(f.get("role") ?? user.role) as PublicUser["role"],
               halqah: String(f.get("halqah") ?? "") || null,
               lembaga: String(f.get("lembaga") ?? "").trim() || null,
-              ...(String(f.get("password") ?? "")
-                ? { password: String(f.get("password")) }
-                : {}),
+              ...(passwordVal ? { password: passwordVal } : {}),
             });
           }}
         >
-          <Field label="Nama Lengkap" required>
-            <Input name="nama" required defaultValue={user.nama} />
-          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Nama Lengkap" required>
+              <Input name="nama" required defaultValue={user.nama} placeholder="Nama & gelar" />
+            </Field>
+            <Field
+              label="Username"
+              required
+              hint="Huruf, angka, titik, @, -, _ (min. 3 karakter)"
+            >
+              <Input
+                name="username"
+                required
+                minLength={3}
+                defaultValue={user.username}
+                placeholder="mis. hasan.basri atau email"
+              />
+            </Field>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Email">
-              <Input name="email" type="email" defaultValue={user.email ?? ""} />
+              <Input
+                name="email"
+                type="email"
+                defaultValue={user.email ?? ""}
+                placeholder="nama@bqa.sch.id"
+              />
             </Field>
-            <Field label="Password Baru" hint="Kosongkan jika tetap.">
-              <Input name="password" type="text" minLength={6} placeholder="••••••" />
+            <Field
+              label="Password Baru"
+              hint={
+                <span className="block mt-0.5 space-y-1">
+                  <span className="block text-[11.5px] text-muted-foreground">
+                    Kosongkan jika tidak ingin mengubah password saat ini.
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                    <ShieldCheck className="size-3.5" />
+                    Password tersimpan aman (terenkripsi bcrypt)
+                  </span>
+                </span>
+              }
+            >
+              <div className="relative">
+                <Input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  minLength={6}
+                  placeholder="Ketik password baru (min. 6 kar)..."
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 transition-colors"
+                  aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
+                  title={showPassword ? "Sembunyikan password" : "Lihat password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
+              </div>
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -270,18 +367,30 @@ function EditUserDialog({ user }: { user: PublicUser }) {
 }
 
 export function ResetPasswordButton({ user }: { user: PublicUser }) {
-  const mutation = useMutation({
-    mutationFn: () =>
-      api.users.update(user.id, { password: `bqa${Date.now().toString().slice(-6)}` }),
-    onSuccess: (res) => toast.success(`Password ${res.user.nama} berhasil direset`),
-    onError: (err) => toast.error(errorMessage(err)),
-  });
+  const [resetting, setResetting] = useState(false);
+
+  const handleReset = async () => {
+    const newPassword = `bqa${Math.floor(100000 + Math.random() * 900000)}`;
+    try {
+      setResetting(true);
+      const res = await api.users.update(user.id, { password: newPassword });
+      toast.success(`Password ${res.user.nama} direset: ${newPassword}`, {
+        duration: 12000,
+        description: `Berikan password baru ini kepada ${res.user.nama} untuk login`,
+      });
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setResetting(false);
+    }
+  };
 
   return (
     <ActionButton
       icon={KeyRound}
       title="Reset password"
-      onClick={() => mutation.mutate()}
+      disabled={resetting}
+      onClick={handleReset}
     />
   );
 }
