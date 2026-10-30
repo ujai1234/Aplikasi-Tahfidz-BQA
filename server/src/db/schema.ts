@@ -30,6 +30,7 @@ export const masterSantri = sqliteTable(
     nis: text("nis").notNull(),
     nama: text("name").notNull(),
     className: text("class_name").notNull().default("-"),
+    classPesantren: text("class_pesantren"),
     halqah: text("halqah"),
     tingkatan: integer("tingkatan"),
     jalur: text("jalur").default("Reguler"),
