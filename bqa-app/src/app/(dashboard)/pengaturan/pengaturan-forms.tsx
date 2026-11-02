@@ -9,8 +9,13 @@ import {
   Info,
   KeyRound,
   MapPin,
+  Crosshair,
+  RotateCcw,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { InteractiveMapPreview } from "@/components/interactive-map-preview";
+import { getAccurateCurrentPosition } from "@/lib/geo";
 import {
   Card,
   CardContent,
@@ -101,6 +106,8 @@ function SaveButton({
   );
 }
 
+const RADIUS_OPTIONS = [50, 100, 150, 200, 250, 300, 500];
+
 export function GpsForm() {
   const { values, setValues, save, saving } = useSettingsForm([
     "gps_radius_meter",
@@ -108,52 +115,180 @@ export function GpsForm() {
     "gps_longitude",
   ]);
 
+  const [isDetecting, setIsDetecting] = useState(false);
+
+  const currentLat = parseFloat(values.gps_latitude || "-6.1286195");
+  const currentLng = parseFloat(values.gps_longitude || "106.9648116");
+  const currentRadius = parseInt(values.gps_radius_meter || "200", 10);
+
+  const handleLocationChange = (lat: number, lng: number) => {
+    setValues((v) => ({
+      ...v,
+      gps_latitude: lat.toFixed(7),
+      gps_longitude: lng.toFixed(7),
+    }));
+  };
+
+  const handleRadiusSelect = (radius: number) => {
+    setValues((v) => ({
+      ...v,
+      gps_radius_meter: String(radius),
+    }));
+  };
+
+  const handleDetectGPS = async () => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      toast.error("Browser tidak mendukung geolokasi GPS.");
+      return;
+    }
+
+    setIsDetecting(true);
+    try {
+      const coords = await getAccurateCurrentPosition({
+        targetAccuracyMeters: 20,
+        maxWaitMs: 5000,
+        timeoutMs: 12000,
+      });
+      const lat = parseFloat(coords.latitude.toFixed(7));
+      const lng = parseFloat(coords.longitude.toFixed(7));
+      setValues((v) => ({
+        ...v,
+        gps_latitude: String(lat),
+        gps_longitude: String(lng),
+      }));
+      setIsDetecting(false);
+      toast.success(
+        `Titik pusat GPS berhasil diperbarui: ${lat}, ${lng} (akurasi ±${Math.round(coords.accuracy ?? 0)}m)`
+      );
+    } catch (err: unknown) {
+      setIsDetecting(false);
+      const msg = err instanceof Error ? err.message : "Gagal mendeteksi GPS";
+      toast.error(msg);
+    }
+  };
+
+  const handleReset = () => {
+    setValues((v) => ({
+      ...v,
+      gps_latitude: "-6.1286195",
+      gps_longitude: "106.9648116",
+      gps_radius_meter: "200",
+    }));
+    toast.info("Koordinat dikembalikan ke standar Kampus Pesantren (200m).");
+  };
+
   return (
     <Card className="h-full">
       <FormHeader
         icon={MapPin}
         tone="bg-primary-soft text-primary"
         title="GPS & Lokasi Presensi"
-        description="Validasi radius & titik koordinat pesantren"
+        description="Validasi radius & titik koordinat pesantren (Baitul Qur'an Al-Ikhwan)"
       />
       <CardContent>
         <form
-          className="grid gap-4"
+          className="grid gap-5"
           onSubmit={(event) => {
             event.preventDefault();
             save();
           }}
         >
-          <Field
-            label="Radius Presensi (meter)"
-            htmlFor="radius"
-            required
-            hint="Presensi hanya diterima jika jarak dari koordinat pesantren ≤ radius ini."
-          >
-            <Input
-              id="radius"
-              type="number"
-              min={50}
-              max={2000}
-              value={values.gps_radius_meter ?? ""}
-              onChange={(e) => setValues((v) => ({ ...v, gps_radius_meter: e.target.value }))}
-            />
-          </Field>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Latitude" required>
-              <Input
-                value={values.gps_latitude ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, gps_latitude: e.target.value }))}
-              />
-            </Field>
-            <Field label="Longitude" required>
-              <Input
-                value={values.gps_longitude ?? ""}
-                onChange={(e) => setValues((v) => ({ ...v, gps_longitude: e.target.value }))}
-              />
-            </Field>
+          {/* Interactive Map Component */}
+          <InteractiveMapPreview
+            latitude={isNaN(currentLat) ? -6.1286195 : currentLat}
+            longitude={isNaN(currentLng) ? 106.9648116 : currentLng}
+            radiusMeters={isNaN(currentRadius) ? 200 : currentRadius}
+            onLocationChange={handleLocationChange}
+          />
+
+          {/* Quick Radius Buttons */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-foreground">
+                Radius Toleransi Presensi
+              </label>
+              <span className="font-mono text-xs font-bold text-primary">
+                {currentRadius} Meter
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+              {RADIUS_OPTIONS.map((r) => {
+                const isSelected = currentRadius === r;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => handleRadiusSelect(r)}
+                    className={`rounded-xl py-2 text-xs font-semibold transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-primary text-white shadow-sm ring-2 ring-primary/40"
+                        : "border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    {r}m
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11.5px] text-muted-foreground">
+              Rekomendasi: <strong>200m – 250m</strong> agar mencakup seluruh gedung asrama, masjid, dan ruang kelas tahfidz.
+            </p>
           </div>
-          <SaveButton label="Simpan Pengaturan GPS" saving={saving} />
+
+          {/* Lat, Lng Inputs & GPS Buttons */}
+          <div className="rounded-xl border border-dashed border-border p-3.5 space-y-3 bg-muted/20">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-foreground">
+                Ubah Titik Koordinat Pusat
+              </span>
+              <button
+                type="button"
+                onClick={handleDetectGPS}
+                disabled={isDetecting}
+                className="flex items-center gap-1.5 text-xs text-primary hover:underline cursor-pointer font-medium disabled:opacity-50"
+              >
+                {isDetecting ? (
+                  <RefreshCw className="size-3.5 animate-spin" />
+                ) : (
+                  <Crosshair className="size-3.5" />
+                )}
+                <span>{isDetecting ? "Mendeteksi..." : "Gunakan GPS Saat Ini"}</span>
+              </button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Latitude" required>
+                <Input
+                  value={values.gps_latitude ?? ""}
+                  onChange={(e) =>
+                    setValues((v) => ({ ...v, gps_latitude: e.target.value }))
+                  }
+                  placeholder="-6.1286195"
+                />
+              </Field>
+              <Field label="Longitude" required>
+                <Input
+                  value={values.gps_longitude ?? ""}
+                  onChange={(e) =>
+                    setValues((v) => ({ ...v, gps_longitude: e.target.value }))
+                  }
+                  placeholder="106.9648116"
+                />
+              </Field>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <RotateCcw className="size-3.5" />
+              <span>Reset Standar (200m)</span>
+            </button>
+            <SaveButton label="Simpan Pengaturan GPS" saving={saving} />
+          </div>
         </form>
       </CardContent>
     </Card>

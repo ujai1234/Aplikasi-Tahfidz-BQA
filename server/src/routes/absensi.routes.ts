@@ -27,6 +27,7 @@ const listQuerySchema = z.object({
 const presensiSchema = z.object({
   latitude: z.coerce.number().min(-90).max(90),
   longitude: z.coerce.number().min(-180).max(180),
+  accuracy: z.coerce.number().nullish(),
   keterangan: z.string().nullish(),
 });
 
@@ -127,7 +128,7 @@ absensiRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
 });
 
 absensiRouter.post("/presensi", requireWrite, validateBody(presensiSchema), (req, res) => {
-  const { latitude, longitude, keterangan } = req.body as z.infer<
+  const { latitude, longitude, accuracy, keterangan } = req.body as z.infer<
     typeof presensiSchema
   >;
   const now = wibParts();
@@ -139,11 +140,11 @@ absensiRouter.post("/presensi", requireWrite, validateBody(presensiSchema), (req
 
   cekDuplikasi(now.date, req.user!.username, sesi.sesi);
 
-  const lokasi = jarakDariPesantren(latitude, longitude);
+  const lokasi = jarakDariPesantren(latitude, longitude, accuracy);
   if (!lokasi.dalamRadius) {
     throw new HttpError(
       403,
-      `Di luar radius pesantren (${lokasi.jarakMeter} m > maks ${lokasi.radiusMeter} m)`
+      `Di luar radius pesantren (${lokasi.jarakMeter} m > batas ${lokasi.radiusMeter} m)`
     );
   }
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, MapPin } from "lucide-react";
+import { Check, MapPin, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   Card,
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/components/providers/auth-provider";
 import { api, errorMessage } from "@/lib/api";
+import { getAccurateCurrentPosition } from "@/lib/geo";
 
 interface GeoState {
   latitude: number;
@@ -38,6 +39,7 @@ export function PresensiCard() {
   const queryClient = useQueryClient();
   const [geo, setGeo] = useState<GeoState | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState<boolean>(true);
 
   const { data: status, isLoading } = useQuery({
     queryKey: ["absensi", "status"],
@@ -50,25 +52,54 @@ export function PresensiCard() {
     queryClient.invalidateQueries({ queryKey: ["dashboard"] });
   }, [queryClient]);
 
-  useEffect(() => {
-    if (!("geolocation" in navigator)) {
-      setGeoError("Perangkat tidak mendukung GPS");
+  const detectLocation = useCallback(async () => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      setGeoError("Perangkat atau browser tidak mendukung akses GPS.");
+      setIsLocating(false);
       return;
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) =>
-        setGeo({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        }),
-      (err) => setGeoError(err.message || "Gagal mengambil lokasi GPS"),
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 }
-    );
+
+    setIsLocating(true);
+    setGeoError(null);
+
+    try {
+      const coords = await getAccurateCurrentPosition({
+        targetAccuracyMeters: 25,
+        maxWaitMs: 5000,
+        timeoutMs: 12000,
+        onProgress: (posCoords, acc) => {
+          setGeo({
+            latitude: posCoords.latitude,
+            longitude: posCoords.longitude,
+            accuracy: acc,
+          });
+        },
+      });
+      setGeo({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: coords.accuracy,
+      });
+      setIsLocating(false);
+    } catch (err: unknown) {
+      setIsLocating(false);
+      const msg = err instanceof Error ? err.message : "Gagal mengambil lokasi GPS";
+      setGeoError(msg);
+    }
   }, []);
 
+  useEffect(() => {
+    detectLocation();
+  }, [detectLocation]);
+
   const presensiMutation = useMutation({
-    mutationFn: () => api.absensi.presensi(geo!.latitude, geo!.longitude),
+    mutationFn: () =>
+      api.absensi.presensi(
+        geo!.latitude,
+        geo!.longitude,
+        undefined,
+        geo?.accuracy
+      ),
     onSuccess: (res) => {
       toast.success(res.pesan);
       refresh();
@@ -128,34 +159,79 @@ export function PresensiCard() {
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-3.5 rounded-2xl border border-dashed border-[#c8d6cc] bg-[#fbfdfc] px-4 py-3.5">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-info-soft text-info">
-            <MapPin className="size-5" strokeWidth={1.9} />
-          </span>
-          {geo ? (
-            <div>
-              <p className="text-[13.5px] font-extrabold">Lokasi Terkunci — GPS Aktif</p>
-              <p className="font-mono text-[12.5px] text-muted-foreground">
-                {geo.latitude.toFixed(6)}, {geo.longitude.toFixed(6)}
-              </p>
-              {geo.accuracy != null && (
-                <p className="text-[11.5px] text-muted-foreground">
-                  Akurasi ±{Math.round(geo.accuracy)} m
-                </p>
+        <div className="flex items-center justify-between gap-3.5 rounded-2xl border border-dashed border-[#c8d6cc] bg-[#fbfdfc] px-4 py-3.5">
+          <div className="flex items-center gap-3.5">
+            <span className={`grid size-11 shrink-0 place-items-center rounded-xl ${
+              isLocating ? "bg-amber-100 text-amber-700" : geo ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+            }`}>
+              {isLocating ? (
+                <RefreshCw className="size-5 animate-spin" />
+              ) : (
+                <MapPin className="size-5" strokeWidth={1.9} />
               )}
-            </div>
-          ) : (
-            <div>
-              <p className="text-[13.5px] font-extrabold">
-                {geoError ? "GPS Tidak Tersedia" : "Mencari sinyal GPS…"}
-              </p>
-              <p className="text-[11.5px] text-muted-foreground">
-                {geoError ??
-                    "Izinkan akses lokasi pada browser untuk melakukan presensi"}
-              </p>
-            </div>
-          )}
+            </span>
+            {isLocating ? (
+              <div>
+                <p className="text-[13.5px] font-extrabold text-foreground">
+                  Mengunci Satelit GPS Presisi…
+                </p>
+                <p className="text-[11.5px] text-muted-foreground">
+                  {geo?.accuracy ? `Sinyal terdeteksi (akurasi ±${Math.round(geo.accuracy)}m), mengoptimalkan…` : "Menghubungkan ke satelit GPS perangkat…"}
+                </p>
+              </div>
+            ) : geo ? (
+              <div>
+                <p className="text-[13.5px] font-extrabold text-foreground">Lokasi Terkunci — GPS Presisi</p>
+                <p className="font-mono text-[12.5px] text-muted-foreground">
+                  {geo.latitude.toFixed(6)}, {geo.longitude.toFixed(6)}
+                </p>
+                {geo.accuracy != null && (
+                  <p className="text-[11.5px] font-medium text-emerald-700">
+                    Akurasi sinyal ±{Math.round(geo.accuracy)} m
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <p className="text-[13.5px] font-extrabold text-rose-700">
+                  GPS Belum Terdeteksi
+                </p>
+                <p className="text-[11.5px] text-muted-foreground">
+                  {geoError ?? "Izinkan akses lokasi (pilih Akurat/Tepat) pada browser Anda"}
+                </p>
+              </div>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={detectLocation}
+            disabled={isLocating}
+            className="shrink-0 text-xs cursor-pointer"
+          >
+            <RefreshCw className={`size-3.5 mr-1 ${isLocating ? "animate-spin" : ""}`} />
+            {isLocating ? "Mencari..." : "Segarkan"}
+          </Button>
         </div>
+
+        {geoError && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 space-y-1">
+            <div className="flex items-center gap-1.5 font-semibold">
+              <AlertCircle className="size-4 shrink-0 text-rose-600" />
+              <span>Panduan Cepat Jika Lokasi Bermasalah:</span>
+            </div>
+            <p className="text-[11.5px] text-rose-700">
+              1. Pastikan izin lokasi browser diset ke <strong>&quot;Akurat / Tepat&quot; (Precise)</strong>, bukan perkiraan.
+            </p>
+            <p className="text-[11.5px] text-rose-700">
+              2. Nyalakan Wi-Fi di HP untuk membantu satelit saat di dalam ruangan/masjid.
+            </p>
+            <p className="text-[11.5px] text-rose-700">
+              3. Buka Google Maps selama 3 detik hingga titik biru tepat, lalu kembali dan tekan tombol <strong>Segarkan</strong>.
+            </p>
+          </div>
+        )}
 
         <div className="grid gap-2.5">
           <CheckItem ok={Boolean(geo)}>

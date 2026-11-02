@@ -12,7 +12,9 @@ export default function PengaturanPage() {
       />
 
       <div className="grid items-start gap-5 lg:grid-cols-2">
-        <GpsForm />
+        <div className="lg:col-span-2">
+          <GpsForm />
+        </div>
         <PresensiTimeForm />
         <EvaluasiTimeForm />
         <TasmiLockForm />

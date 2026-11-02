@@ -420,10 +420,10 @@ export const api = {
     ) {
       return request<{ total: number; data: Absensi[] }>(`/absensi${qs(query)}`);
     },
-    presensi(latitude: number, longitude: number, keterangan?: string) {
+    presensi(latitude: number, longitude: number, keterangan?: string, accuracy?: number | null) {
       return request<{ absensi: Absensi; pesan: string }>("/absensi/presensi", {
         method: "POST",
-        body: JSON.stringify({ latitude, longitude, keterangan }),
+        body: JSON.stringify({ latitude, longitude, keterangan, accuracy }),
       });
     },
     izin(status: "Izin" | "Sakit", keterangan: string) {

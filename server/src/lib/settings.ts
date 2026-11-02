@@ -4,9 +4,9 @@ import { settings } from "../db/schema";
 import { wibParts, isWithinWindow, haversineMeter } from "./wib";
 
 export const SETTING_DEFAULTS: Record<string, string> = {
-  gps_radius_meter: "500",
-  gps_latitude: "-6.914720",
-  gps_longitude: "107.609850",
+  gps_radius_meter: "200",
+  gps_latitude: "-6.1286195",
+  gps_longitude: "106.9648116",
   presensi_subuh_mulai: "04:30",
   presensi_subuh_selesai: "06:00",
   presensi_maghrib_mulai: "18:00",
@@ -103,10 +103,16 @@ export function checkEvaluasiWindow(sesi: "Subuh" | "Maghrib", now = wibParts())
   return { open: true, reason: null };
 }
 
-export function jarakDariPesantren(latitude: number, longitude: number): {
+export function jarakDariPesantren(
+  latitude: number,
+  longitude: number,
+  accuracy?: number | null
+): {
   jarakMeter: number;
+  effectiveJarakMeter: number;
   radiusMeter: number;
   dalamRadius: boolean;
+  accuracyDiscount: number;
 } {
   const s = getSettings();
   const radiusMeter = Number(s.gps_radius_meter);
@@ -116,7 +122,22 @@ export function jarakDariPesantren(latitude: number, longitude: number): {
     Number(s.gps_latitude),
     Number(s.gps_longitude)
   );
-  return { jarakMeter, radiusMeter, dalamRadius: jarakMeter <= radiusMeter };
+
+  // Toleransi akurasi hingga 60 meter untuk deviasi gedung/indoor/atap masjid
+  const MAX_ACCURACY_DISCOUNT = 60;
+  const accuracyDiscount = accuracy != null && accuracy > 0
+    ? Math.min(Math.round(accuracy), MAX_ACCURACY_DISCOUNT)
+    : 0;
+
+  const effectiveJarakMeter = Math.max(0, jarakMeter - accuracyDiscount);
+
+  return {
+    jarakMeter,
+    effectiveJarakMeter,
+    radiusMeter,
+    dalamRadius: effectiveJarakMeter <= radiusMeter,
+    accuracyDiscount,
+  };
 }
 
 export function checkTasmiWindow(
