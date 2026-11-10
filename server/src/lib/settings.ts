@@ -123,8 +123,8 @@ export function jarakDariPesantren(
     Number(s.gps_longitude)
   );
 
-  // Toleransi akurasi hingga 60 meter untuk deviasi gedung/indoor/atap masjid
-  const MAX_ACCURACY_DISCOUNT = 60;
+  // Toleransi akurasi hingga 80 meter untuk deviasi gedung/indoor/atap masjid/asrama
+  const MAX_ACCURACY_DISCOUNT = 80;
   const accuracyDiscount = accuracy != null && accuracy > 0
     ? Math.min(Math.round(accuracy), MAX_ACCURACY_DISCOUNT)
     : 0;

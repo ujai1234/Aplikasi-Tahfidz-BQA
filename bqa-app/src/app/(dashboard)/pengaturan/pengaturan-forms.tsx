@@ -276,6 +276,38 @@ export function GpsForm() {
                 />
               </Field>
             </div>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setValues((v) => ({
+                    ...v,
+                    gps_latitude: "-6.1286195",
+                    gps_longitude: "106.9648116",
+                    gps_radius_meter: "200",
+                  }));
+                  toast.info("Menggunakan Preset Standar HRIS (200m).");
+                }}
+                className="rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-muted cursor-pointer"
+              >
+                📍 Preset Standar HRIS (200m)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setValues((v) => ({
+                    ...v,
+                    gps_latitude: "-6.1286195",
+                    gps_longitude: "106.9648116",
+                    gps_radius_meter: "250",
+                  }));
+                  toast.info("Menggunakan Preset Masjid & Asrama (250m).");
+                }}
+                className="rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-muted cursor-pointer"
+              >
+                🕌 Preset Masjid & Asrama (250m)
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center justify-between pt-1">
@@ -285,7 +317,7 @@ export function GpsForm() {
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <RotateCcw className="size-3.5" />
-              <span>Reset Standar (200m)</span>
+              <span>Reset Standar HRIS (200m)</span>
             </button>
             <SaveButton label="Simpan Pengaturan GPS" saving={saving} />
           </div>

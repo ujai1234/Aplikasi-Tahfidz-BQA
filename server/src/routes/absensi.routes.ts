@@ -97,6 +97,11 @@ absensiRouter.get("/status", (req, res) => {
         selesai: settings.presensi_maghrib_selesai,
       },
     },
+    geofence: {
+      latitude: Number(settings.gps_latitude),
+      longitude: Number(settings.gps_longitude),
+      radiusMeter: Number(settings.gps_radius_meter),
+    },
   });
 });
 
@@ -142,9 +147,10 @@ absensiRouter.post("/presensi", requireWrite, validateBody(presensiSchema), (req
 
   const lokasi = jarakDariPesantren(latitude, longitude, accuracy);
   if (!lokasi.dalamRadius) {
+    const accText = accuracy != null ? ` (akurasi sinyal ±${Math.round(accuracy)}m)` : "";
     throw new HttpError(
       403,
-      `Di luar radius pesantren (${lokasi.jarakMeter} m > batas ${lokasi.radiusMeter} m)`
+      `Di luar radius pesantren: terhitung ${lokasi.effectiveJarakMeter} m dari pusat (batas maksimal radius adalah ${lokasi.radiusMeter} m)${accText}`
     );
   }
 

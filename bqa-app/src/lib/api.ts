@@ -145,6 +145,11 @@ export interface AbsensiStatus {
     subuh: { mulai: string; selesai: string };
     maghrib: { mulai: string; selesai: string };
   };
+  geofence?: {
+    latitude: number;
+    longitude: number;
+    radiusMeter: number;
+  };
 }
 
 export class ApiError extends Error {

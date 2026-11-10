@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/components/providers/auth-provider";
 import { api, errorMessage } from "@/lib/api";
-import { getAccurateCurrentPosition } from "@/lib/geo";
+import { getAccurateCurrentPosition, calculateHaversineDistance } from "@/lib/geo";
 
 interface GeoState {
   latitude: number;
@@ -134,6 +134,32 @@ export function PresensiCard() {
     ? status.presensiHariIni.some((p) => p.sesi === sesi.sesi)
     : false;
 
+  const geofence = status.geofence ?? {
+    latitude: -6.1286195,
+    longitude: 106.9648116,
+    radiusMeter: 200,
+  };
+
+  const rawDistance = geo
+    ? calculateHaversineDistance(
+        geo.latitude,
+        geo.longitude,
+        geofence.latitude,
+        geofence.longitude
+      )
+    : null;
+
+  const MAX_ACCURACY_DISCOUNT = 80;
+  const accuracyDiscount = geo?.accuracy
+    ? Math.min(Math.round(geo.accuracy), MAX_ACCURACY_DISCOUNT)
+    : 0;
+  const effectiveDistance =
+    rawDistance !== null ? Math.max(0, rawDistance - accuracyDiscount) : null;
+  const isWithinRadius =
+    effectiveDistance !== null
+      ? effectiveDistance <= geofence.radiusMeter
+      : false;
+
   return (
     <Card>
       <CardHeader>
@@ -161,9 +187,17 @@ export function PresensiCard() {
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between gap-3.5 rounded-2xl border border-dashed border-[#c8d6cc] bg-[#fbfdfc] px-4 py-3.5">
           <div className="flex items-center gap-3.5">
-            <span className={`grid size-11 shrink-0 place-items-center rounded-xl ${
-              isLocating ? "bg-amber-100 text-amber-700" : geo ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
-            }`}>
+            <span
+              className={`grid size-11 shrink-0 place-items-center rounded-xl ${
+                isLocating
+                  ? "bg-amber-100 text-amber-700"
+                  : geo && isWithinRadius
+                    ? "bg-emerald-100 text-emerald-700"
+                    : geo
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-rose-100 text-rose-700"
+              }`}
+            >
               {isLocating ? (
                 <RefreshCw className="size-5 animate-spin" />
               ) : (
@@ -176,20 +210,37 @@ export function PresensiCard() {
                   Mengunci Satelit GPS Presisi…
                 </p>
                 <p className="text-[11.5px] text-muted-foreground">
-                  {geo?.accuracy ? `Sinyal terdeteksi (akurasi ±${Math.round(geo.accuracy)}m), mengoptimalkan…` : "Menghubungkan ke satelit GPS perangkat…"}
+                  {geo?.accuracy
+                    ? `Sinyal terdeteksi (akurasi ±${Math.round(geo.accuracy)}m), mengoptimalkan…`
+                    : "Menghubungkan ke satelit GPS perangkat…"}
                 </p>
               </div>
             ) : geo ? (
               <div>
-                <p className="text-[13.5px] font-extrabold text-foreground">Lokasi Terkunci — GPS Presisi</p>
+                <p className="text-[13.5px] font-extrabold text-foreground">
+                  Lokasi Terkunci — GPS Presisi
+                </p>
                 <p className="font-mono text-[12.5px] text-muted-foreground">
                   {geo.latitude.toFixed(6)}, {geo.longitude.toFixed(6)}
                 </p>
-                {geo.accuracy != null && (
-                  <p className="text-[11.5px] font-medium text-emerald-700">
-                    Akurasi sinyal ±{Math.round(geo.accuracy)} m
-                  </p>
-                )}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] mt-0.5">
+                  <span
+                    className={
+                      isWithinRadius
+                        ? "font-bold text-emerald-700"
+                        : "font-bold text-rose-600"
+                    }
+                  >
+                    {isWithinRadius
+                      ? `✓ Dalam Radius Pesantren (~${rawDistance}m)`
+                      : `✗ Di Luar Radius Pesantren (~${rawDistance}m)`}
+                  </span>
+                  {geo.accuracy != null && (
+                    <span className="text-muted-foreground">
+                      · Akurasi ±{Math.round(geo.accuracy)}m
+                    </span>
+                  )}
+                </div>
               </div>
             ) : (
               <div>
@@ -233,10 +284,30 @@ export function PresensiCard() {
           </div>
         )}
 
+        {geo && !isWithinRadius && !isLocating && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-1">
+            <div className="flex items-center gap-1.5 font-semibold text-amber-800">
+              <AlertCircle className="size-4 shrink-0 text-amber-600" />
+              <span>Sudah di Lingkungan Pesantren Tapi Terbaca di Luar?</span>
+            </div>
+            <p className="text-[11.5px] text-amber-700">
+              • Buka <strong>Google Maps</strong> sebentar selama 3–5 detik agar satelit GPS HP Anda mengunci titik tepat.
+            </p>
+            <p className="text-[11.5px] text-amber-700">
+              • Nyalakan <strong>Wi-Fi</strong> di HP untuk membantu triangulasi posisi saat berada di dalam ruangan kelas atau masjid.
+            </p>
+            <p className="text-[11.5px] text-amber-700">
+              • Setelah itu, kembali ke sini dan tekan tombol <strong>Segarkan</strong> di atas.
+            </p>
+          </div>
+        )}
+
         <div className="grid gap-2.5">
-          <CheckItem ok={Boolean(geo)}>
+          <CheckItem ok={Boolean(geo) && isWithinRadius}>
             {geo
-              ? "Lokasi GPS berhasil dideteksi"
+              ? isWithinRadius
+                ? `Berada di wilayah pesantren (~${rawDistance}m dari pusat, batas ${geofence.radiusMeter}m)`
+                : `Di luar radius pesantren: ~${rawDistance}m (Batas ${geofence.radiusMeter}m)`
               : "Menunggu deteksi lokasi GPS"}
           </CheckItem>
           <CheckItem ok={sesi.open}>
@@ -276,17 +347,33 @@ export function PresensiCard() {
                   toast.warning("Lokasi GPS belum terdeteksi");
                   return;
                 }
+                if (!isWithinRadius) {
+                  toast.error(
+                    `Di luar radius pesantren: ~${rawDistance}m dari pusat (batas ${geofence.radiusMeter}m)`
+                  );
+                  return;
+                }
                 presensiMutation.mutate();
               }}
-              disabled={!sesi.open || !geo || presensiMutation.isPending}
+              disabled={
+                !sesi.open ||
+                !geo ||
+                isLocating ||
+                !isWithinRadius ||
+                presensiMutation.isPending
+              }
               className="w-full rounded-2xl py-3.5 text-[14.5px]"
             >
               <Check className="size-4" strokeWidth={2.5} />
               {presensiMutation.isPending
                 ? "Memvalidasi…"
-                : sesi.open
-                  ? `Presensi Hadir — Sesi ${sesi.sesi}`
-                  : "Presensi Tutup"}
+                : isLocating
+                  ? "Mengunci Satelit GPS Presisi…"
+                  : !isWithinRadius && geo
+                    ? `Di Luar Radius Pesantren (~${rawDistance}m)`
+                    : sesi.open
+                      ? `Presensi Hadir — Sesi ${sesi.sesi}`
+                      : "Presensi Tutup"}
             </Button>
             {sesi.open && (
               <Button
