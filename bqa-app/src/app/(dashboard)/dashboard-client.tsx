@@ -1,21 +1,35 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import {
   AlertTriangle,
   Award,
   Calendar,
+  CalendarDays,
   CheckCircle2,
   Clock3,
   Lock,
+  Moon,
   Sparkles,
+  Sun,
   Unlock,
+  UserCheck,
   Users,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LinkMore } from "@/components/ui/link-more";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserCell } from "@/components/ui/user-cell";
 import {
   Table,
   TableBody,
@@ -26,9 +40,10 @@ import {
 } from "@/components/ui/table";
 import { PersentaseTargetChart } from "@/components/dashboard/persentase-target-chart";
 import { RekapTasmiChart } from "@/components/dashboard/rekap-tasmi-chart";
-import { api } from "@/lib/api";
+import { api, type DashboardData } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
-import { capaianVariant } from "@/lib/utils";
+import { capaianVariant, initialsOf, presensiVariant } from "@/lib/utils";
+import { tanggalIndo } from "@/lib/user-utils";
 
 function tanggalIndoFormat(date: Date): string {
   return date.toLocaleDateString("id-ID", {
@@ -39,9 +54,100 @@ function tanggalIndoFormat(date: Date): string {
   });
 }
 
+type PresensiRow = DashboardData["presensiTerbaru"][number];
+
+function PresensiRowsTable({
+  rows,
+  showDate,
+  emptyMessage,
+}: {
+  rows: PresensiRow[];
+  showDate: boolean;
+  emptyMessage: string;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="py-10 text-center text-sm font-medium text-muted-foreground">
+        {emptyMessage}
+      </div>
+    );
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Ustadz / Halqah</TableHead>
+          <TableHead>{showDate ? "Tanggal & Jam" : "Jam"}</TableHead>
+          <TableHead>Sesi</TableHead>
+          <TableHead>Validasi / Keterangan</TableHead>
+          <TableHead className="text-right">Status</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row, idx) => (
+          <TableRow key={row.id ?? `${row.tanggal}-${row.jam}-${row.nama}-${idx}`}>
+            <TableCell>
+              <UserCell
+                initials={initialsOf(row.nama)}
+                name={row.nama}
+                sub={row.halqah}
+              />
+            </TableCell>
+            <TableCell className="tabular-nums text-[13px] font-medium text-ink">
+              {showDate ? (
+                <span>
+                  {tanggalIndo(row.tanggal)} ·{" "}
+                  <span className="text-muted-foreground">{row.jam} WIB</span>
+                </span>
+              ) : (
+                <span>{row.jam} WIB</span>
+              )}
+            </TableCell>
+            <TableCell>
+              <Badge variant="outline">{row.sesi}</Badge>
+            </TableCell>
+            <TableCell className="text-[12.5px] text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {row.isAdminOverride && (
+                  <Badge variant="gold">Override Admin</Badge>
+                )}
+                {row.jarak && row.jarak !== "—" && (
+                  <span className="tabular-nums font-medium text-ink">
+                    {row.jarak}
+                  </span>
+                )}
+                {row.lokasiValidasi && (
+                  <span className="text-xs text-muted-foreground">
+                    ({row.lokasiValidasi})
+                  </span>
+                )}
+                {row.keterangan && (
+                  <span className="text-xs text-slate-600">{row.keterangan}</span>
+                )}
+                {!row.isAdminOverride &&
+                  (!row.jarak || row.jarak === "—") &&
+                  !row.lokasiValidasi &&
+                  !row.keterangan && <span>—</span>}
+              </div>
+            </TableCell>
+            <TableCell className="text-right">
+              <Badge variant={presensiVariant[row.status] ?? "neutral"}>
+                {row.status}
+              </Badge>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
 export function DashboardClient() {
-  const { user } = useAuth();
+  const { user, isAdmin, isKepsek } = useAuth();
+  const isSupervisor = isAdmin || isKepsek;
   const todayFormatted = useMemo(() => tanggalIndoFormat(new Date()), []);
+  const [selectedPresensiTab, setSelectedPresensiTab] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["dashboard"],
@@ -60,8 +166,31 @@ export function DashboardClient() {
 
   if (isError) return null;
 
-  const { stats, persentaseCapaian, rekapPredikat, presensiBanner, santriPerluPerhatian } = data;
+  const {
+    stats,
+    persentaseCapaian,
+    rekapPredikat,
+    presensiBanner,
+    santriPerluPerhatian,
+    presensiHariIni = [],
+    presensiTerbaru = [],
+    rekapPresensiBulanIni = [],
+    bulanIniLabel = "Bulan Ini",
+    sesi,
+  } = data;
   const isPresensiOpen = presensiBanner?.open ?? false;
+  const hasBulanIniActivity = rekapPresensiBulanIni.some(
+    (item) => item.totalHadir > 0 || item.izin > 0 || item.sakit > 0
+  );
+  const defaultPresensiTab =
+    presensiHariIni.length > 0
+      ? "hari-ini"
+      : presensiTerbaru.length > 0
+        ? "terbaru"
+        : hasBulanIniActivity
+          ? "rekap"
+          : "hari-ini";
+  const activePresensiTab = selectedPresensiTab ?? defaultPresensiTab;
 
   return (
     <div className="space-y-5">
@@ -212,6 +341,200 @@ export function DashboardClient() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Presensi Ustadz Summary & Sesi Strip */}
+      <div className="grid gap-3.5 md:grid-cols-3">
+        <Card className="border-line bg-card shadow-2xs transition-all hover:shadow-sm">
+          <CardContent className="flex items-center justify-between p-4.5">
+            <div className="space-y-1">
+              <p className="text-[10.5px] font-bold uppercase tracking-wider text-emerald-700">
+                Presensi Ustadz Hari Ini
+              </p>
+              <p className="font-display text-2xl font-black text-ink">
+                {stats.presensiHadir}{" "}
+                <span className="text-sm font-semibold text-muted-foreground">
+                  / {stats.presensiTotal}
+                </span>
+              </p>
+              <p className="text-[11.5px] font-medium text-muted-foreground">
+                Subuh {stats.presensiSubuh} · Maghrib {stats.presensiMaghrib}
+              </p>
+            </div>
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
+              <UserCheck className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-line bg-card shadow-2xs transition-all hover:shadow-sm">
+          <CardContent className="flex items-center justify-between gap-3 p-4.5">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="text-[10.5px] font-bold uppercase tracking-wider text-amber-700">
+                  Sesi Subuh
+                </p>
+                {isPresensiOpen && presensiBanner?.sesi === "Subuh" && (
+                  <Badge variant="success">Sedang Buka</Badge>
+                )}
+              </div>
+              <p className="font-display text-lg font-extrabold text-ink tabular-nums">
+                {sesi?.subuh?.mulai ?? "04:45"} – {sesi?.subuh?.selesai ?? "06:30"} WIB
+              </p>
+              <p className="text-[11.5px] font-semibold text-muted-foreground">
+                {sesi?.subuh?.hadir ?? stats.presensiSubuh} ustadz hadir hari ini
+              </p>
+            </div>
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-700">
+              <Sun className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-line bg-card shadow-2xs transition-all hover:shadow-sm">
+          <CardContent className="flex items-center justify-between gap-3 p-4.5">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="text-[10.5px] font-bold uppercase tracking-wider text-indigo-700">
+                  Sesi Maghrib
+                </p>
+                {isPresensiOpen && presensiBanner?.sesi === "Maghrib" && (
+                  <Badge variant="success">Sedang Buka</Badge>
+                )}
+              </div>
+              <p className="font-display text-lg font-extrabold text-ink tabular-nums">
+                {sesi?.maghrib?.mulai ?? "17:45"} – {sesi?.maghrib?.selesai ?? "19:30"} WIB
+              </p>
+              <p className="text-[11.5px] font-semibold text-muted-foreground">
+                {sesi?.maghrib?.hadir ?? stats.presensiMaghrib} ustadz hadir hari ini
+              </p>
+            </div>
+            <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-indigo-100 text-indigo-700">
+              <Moon className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Data Presensi Ustadz */}
+      <Card className="gap-0 overflow-hidden border-line bg-card pb-0 shadow-2xs">
+        <CardHeader className="border-b border-line bg-slate-50/50 pb-4">
+          <div className="flex items-center gap-2.5">
+            <CalendarDays className="size-4.5 shrink-0 text-emerald-700" />
+            <div>
+              <CardTitle>
+                {isSupervisor
+                  ? "Data Presensi Ustadz & Ustadzah"
+                  : "Data Presensi Kehadiran Anda"}
+              </CardTitle>
+              <CardDescription>
+                {isSupervisor
+                  ? "Daftar ustadz yang sudah absen hari ini, riwayat presensi terbaru, dan rekap bulan berjalan"
+                  : "Catatan presensi kehadiran pribadi hari ini dan bulan berjalan"}
+              </CardDescription>
+            </div>
+          </div>
+          <CardAction>
+            <LinkMore href="/absensi">Kelola Presensi</LinkMore>
+          </CardAction>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          <Tabs
+            value={activePresensiTab}
+            onValueChange={setSelectedPresensiTab}
+            className="gap-0"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-white px-4.5 py-2.5">
+              <TabsList>
+                <TabsTrigger value="hari-ini">
+                  Hari Ini ({presensiHariIni.length})
+                </TabsTrigger>
+                <TabsTrigger value="terbaru">
+                  Riwayat Terbaru ({presensiTerbaru.length})
+                </TabsTrigger>
+                <TabsTrigger value="rekap">
+                  Rekap {bulanIniLabel} ({rekapPresensiBulanIni.length})
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="hari-ini" className="mt-0">
+              <PresensiRowsTable
+                rows={presensiHariIni}
+                showDate={false}
+                emptyMessage="Belum ada ustadz yang melakukan presensi pada hari ini."
+              />
+            </TabsContent>
+
+            <TabsContent value="terbaru" className="mt-0">
+              <PresensiRowsTable
+                rows={presensiTerbaru}
+                showDate={true}
+                emptyMessage="Belum ada data presensi ustadz yang tercatat."
+              />
+            </TabsContent>
+
+            <TabsContent value="rekap" className="mt-0">
+              {rekapPresensiBulanIni.length === 0 ? (
+                <div className="py-10 text-center text-sm font-medium text-muted-foreground">
+                  Belum ada data rekap presensi untuk {bulanIniLabel}.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ustadz / Halqah</TableHead>
+                      <TableHead className="text-center">Subuh</TableHead>
+                      <TableHead className="text-center">Maghrib</TableHead>
+                      <TableHead className="text-center">Izin / Sakit</TableHead>
+                      <TableHead className="text-center">Total Hadir</TableHead>
+                      <TableHead>Absen Terakhir</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rekapPresensiBulanIni.map((item) => (
+                      <TableRow key={item.username}>
+                        <TableCell>
+                          <UserCell
+                            initials={initialsOf(item.nama)}
+                            name={item.nama}
+                            sub={item.halqah}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums font-semibold text-ink">
+                          {item.subuhHadir}x
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums font-semibold text-ink">
+                          {item.maghribHadir}x
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums text-muted-foreground">
+                          {item.izin} / {item.sakit}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={item.totalHadir > 0 ? "success" : "neutral"}>
+                            {item.totalHadir}x Hadir
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-[12.5px] text-muted-foreground">
+                          {item.terakhirAbsen ? (
+                            <span className="font-medium text-ink">
+                              {tanggalIndo(item.terakhirAbsen)}
+                              {item.terakhirJam ? ` · ${item.terakhirJam}` : ""}
+                              {item.terakhirSesi ? ` (${item.terakhirSesi})` : ""}
+                            </span>
+                          ) : (
+                            <span>Belum ada</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       {/* Middle Row: Two Charts */}
       <div className="grid items-stretch gap-5 lg:grid-cols-2">

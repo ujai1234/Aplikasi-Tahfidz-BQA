@@ -116,15 +116,49 @@ export interface DashboardData {
     target: string;
     catatan?: string;
   }>;
-  presensiTerbaru: Array<{
+  presensiHariIni?: Array<{
+    id: string;
     tanggal: string;
     jam: string;
+    username?: string;
     nama: string;
     halqah: string;
     sesi: Sesi;
     status: PresensiStatus;
     jarak: string;
+    lokasiValidasi?: string | null;
+    isAdminOverride?: boolean;
+    keterangan?: string | null;
   }>;
+  presensiTerbaru: Array<{
+    id?: string;
+    tanggal: string;
+    jam: string;
+    username?: string;
+    nama: string;
+    halqah: string;
+    sesi: Sesi;
+    status: PresensiStatus;
+    jarak: string;
+    lokasiValidasi?: string | null;
+    isAdminOverride?: boolean;
+    keterangan?: string | null;
+  }>;
+  rekapPresensiBulanIni?: Array<{
+    username: string;
+    nama: string;
+    halqah: string;
+    subuhHadir: number;
+    maghribHadir: number;
+    izin: number;
+    sakit: number;
+    totalHadir: number;
+    terakhirAbsen: string | null;
+    terakhirJam: string | null;
+    terakhirSesi: Sesi | null;
+    terakhirStatus: PresensiStatus | null;
+  }>;
+  bulanIniLabel?: string;
   sesi: {
     subuh: { mulai: string; selesai: string; hadir: number };
     maghrib: { mulai: string; selesai: string; hadir: number };

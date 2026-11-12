@@ -125,7 +125,7 @@ absensiRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
     .select()
     .from(absensiUstadz)
     .where(filters.length ? and(...filters) : undefined)
-    .orderBy(desc(absensiUstadz.tanggal), desc(absensiUstadz.id))
+    .orderBy(desc(absensiUstadz.tanggal), desc(absensiUstadz.jam), desc(absensiUstadz.createdAt))
     .limit(limit)
     .all();
 

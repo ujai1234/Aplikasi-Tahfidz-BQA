@@ -35,7 +35,7 @@ import { presensiVariant } from "@/lib/utils";
 import { tanggalIndo } from "@/lib/user-utils";
 
 export function AbsensiClient() {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isKepsek } = useAuth();
   const [tanggal, setTanggal] = useState("");
   const [sesi, setSesi] = useState("");
   const [status, setStatus] = useState("");
@@ -82,7 +82,7 @@ export function AbsensiClient() {
         <CardHeader className="border-b border-line pb-4">
           <CardTitle>Riwayat Presensi</CardTitle>
           <CardDescription>
-            {isAdmin
+            {isAdmin || isKepsek
               ? "Seluruh catatan kehadiran ustadz & ustadzah"
               : "Riwayat presensi pribadi Anda"}
           </CardDescription>
@@ -164,11 +164,16 @@ export function AbsensiClient() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {row.isAdminOverride ? (
-                      <Badge variant="gold">Override Admin</Badge>
-                    ) : (
-                      (row.keterangan ?? "—")
-                    )}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {row.isAdminOverride && (
+                        <Badge variant="gold">Override Admin</Badge>
+                      )}
+                      {row.keterangan ? (
+                        <span>{row.keterangan}</span>
+                      ) : !row.isAdminOverride ? (
+                        <span>—</span>
+                      ) : null}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

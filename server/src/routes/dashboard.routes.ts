@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Router } from "express";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "../db";
 import {
   absensiUstadz,
@@ -149,28 +149,184 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
     }
   }
 
-  const absensiToday = db
+  const isSupervisor = user.role === "Admin" || user.role === "Kepsek";
+
+  const absensiTodayAll = db
     .select()
     .from(absensiUstadz)
     .where(eq(absensiUstadz.tanggal, today))
-    .orderBy(desc(absensiUstadz.id))
+    .orderBy(desc(absensiUstadz.jam), desc(absensiUstadz.createdAt))
     .all();
 
+  const absensiToday = isSupervisor
+    ? absensiTodayAll
+    : absensiTodayAll.filter((row) => row.username === user.username);
+
   const hadirUsernames = new Set(
-    absensiToday.filter((row) => row.status === "Hadir").map((row) => row.username)
+    absensiTodayAll.filter((row) => row.status === "Hadir").map((row) => row.username)
   );
-  const subuhHadir = absensiToday.filter(
+  const subuhHadir = absensiTodayAll.filter(
     (row) => row.sesi === "Subuh" && row.status === "Hadir"
   ).length;
-  const maghribHadir = absensiToday.filter(
+  const maghribHadir = absensiTodayAll.filter(
     (row) => row.sesi === "Maghrib" && row.status === "Hadir"
   ).length;
 
   const ustadzAktif = db
-    .select({ id: users.id })
+    .select({
+      id: users.id,
+      username: users.username,
+      nama: users.nama,
+      halqah: users.halqah,
+    })
     .from(users)
     .where(and(eq(users.status, "Aktif"), inArray(users.role, ["Ustadz", "Ustadzah"])))
+    .orderBy(asc(users.halqah), asc(users.nama))
     .all();
+
+  const absensiRecentRows = db
+    .select()
+    .from(absensiUstadz)
+    .where(isSupervisor ? undefined : eq(absensiUstadz.username, user.username))
+    .orderBy(desc(absensiUstadz.tanggal), desc(absensiUstadz.jam), desc(absensiUstadz.createdAt))
+    .limit(30)
+    .all();
+
+  const [yearStr, monthStr] = today.split("-");
+  const currentYear = Number(yearStr);
+  const currentMonth = Number(monthStr);
+  const monthStart = `${yearStr}-${monthStr}-01`;
+  const nextMonthStart =
+    currentMonth === 12
+      ? `${currentYear + 1}-01-01`
+      : `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-01`;
+  const bulanIniLabel = new Intl.DateTimeFormat("id-ID", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(currentYear, currentMonth - 1, 1)));
+
+  const absensiBulanIni = db
+    .select()
+    .from(absensiUstadz)
+    .where(
+      isSupervisor
+        ? and(gte(absensiUstadz.tanggal, monthStart), lt(absensiUstadz.tanggal, nextMonthStart))
+        : and(
+            eq(absensiUstadz.username, user.username),
+            gte(absensiUstadz.tanggal, monthStart),
+            lt(absensiUstadz.tanggal, nextMonthStart)
+          )
+    )
+    .orderBy(desc(absensiUstadz.tanggal), desc(absensiUstadz.jam), desc(absensiUstadz.createdAt))
+    .all();
+
+  const rekapMap = new Map<
+    string,
+    {
+      username: string;
+      nama: string;
+      halqah: string;
+      subuhHadir: number;
+      maghribHadir: number;
+      izin: number;
+      sakit: number;
+      totalHadir: number;
+      terakhirAbsen: string | null;
+      terakhirJam: string | null;
+      terakhirSesi: string | null;
+      terakhirStatus: string | null;
+    }
+  >();
+
+  const seedRekapUsers = isSupervisor
+    ? ustadzAktif
+    : [
+        {
+          id: user.id,
+          username: user.username,
+          nama: user.nama,
+          halqah: user.halqah ?? null,
+        },
+      ];
+
+  for (const u of seedRekapUsers) {
+    rekapMap.set(u.username, {
+      username: u.username,
+      nama: u.nama,
+      halqah: u.halqah ?? "-",
+      subuhHadir: 0,
+      maghribHadir: 0,
+      izin: 0,
+      sakit: 0,
+      totalHadir: 0,
+      terakhirAbsen: null,
+      terakhirJam: null,
+      terakhirSesi: null,
+      terakhirStatus: null,
+    });
+  }
+
+  for (const row of absensiBulanIni) {
+    let entry = rekapMap.get(row.username);
+    if (!entry) {
+      entry = {
+        username: row.username,
+        nama: row.nama,
+        halqah: row.halqah ?? "-",
+        subuhHadir: 0,
+        maghribHadir: 0,
+        izin: 0,
+        sakit: 0,
+        totalHadir: 0,
+        terakhirAbsen: null,
+        terakhirJam: null,
+        terakhirSesi: null,
+        terakhirStatus: null,
+      };
+      rekapMap.set(row.username, entry);
+    }
+
+    if (row.status === "Hadir") {
+      entry.totalHadir += 1;
+      if (row.sesi === "Subuh") entry.subuhHadir += 1;
+      else if (row.sesi === "Maghrib") entry.maghribHadir += 1;
+    } else if (row.status === "Izin") {
+      entry.izin += 1;
+    } else if (row.status === "Sakit") {
+      entry.sakit += 1;
+    }
+
+    if (!entry.terakhirAbsen) {
+      entry.terakhirAbsen = row.tanggal;
+      entry.terakhirJam = row.jam;
+      entry.terakhirSesi = row.sesi;
+      entry.terakhirStatus = row.status;
+    }
+  }
+
+  const rekapPresensiBulanIni = [...rekapMap.values()].sort(
+    (a, b) =>
+      b.totalHadir - a.totalHadir ||
+      b.izin + b.sakit - (a.izin + a.sakit) ||
+      a.halqah.localeCompare(b.halqah) ||
+      a.nama.localeCompare(b.nama)
+  );
+
+  const mapPresensiItem = (row: typeof absensiUstadz.$inferSelect) => ({
+    id: row.id,
+    tanggal: row.tanggal,
+    jam: row.jam,
+    username: row.username,
+    nama: row.nama,
+    halqah: row.halqah ?? "-",
+    sesi: row.sesi,
+    status: row.status,
+    jarak: row.jarakMeter != null ? `${row.jarakMeter} m` : "—",
+    lokasiValidasi: row.lokasiValidasi ?? null,
+    isAdminOverride: Boolean(row.isAdminOverride),
+    keterangan: row.keterangan ?? null,
+  });
 
   const since = wibDaysAgo(7);
   const recentEvaluasi = evaluasiRows.filter((row) => row.tanggal >= since);
@@ -233,15 +389,10 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
     capaianHalqah,
     distribusiHalqah,
     santriPerluPerhatian: perluPerhatian.slice(0, 10),
-    presensiTerbaru: absensiToday.slice(0, 5).map((row) => ({
-      tanggal: row.tanggal,
-      jam: row.jam,
-      nama: row.nama,
-      halqah: row.halqah ?? "-",
-      sesi: row.sesi,
-      status: row.status,
-      jarak: row.jarakMeter != null ? `${row.jarakMeter} m` : "—",
-    })),
+    presensiHariIni: absensiToday.map(mapPresensiItem),
+    presensiTerbaru: absensiRecentRows.map(mapPresensiItem),
+    rekapPresensiBulanIni,
+    bulanIniLabel,
     sesi: {
       subuh: {
         mulai: settings.presensi_subuh_mulai,
