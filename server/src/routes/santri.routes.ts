@@ -7,9 +7,17 @@ import { db } from "../db";
 import { dataSantri, dataTasmi, masterSantri } from "../db/schema";
 import { writeAudit } from "../lib/audit";
 import { HttpError } from "../lib/errors";
+import {
+  compareDateThenCreatedDesc,
+  isSantriAktif,
+  matchesHalqah,
+  normalizeGender,
+  normalizeTingkatan,
+  resolveSantriHalqah,
+  unixNowSec,
+} from "../lib/santri-utils";
 import { requireAdmin, requireAuth, requireWrite, scopeHalqah } from "../middleware/auth";
 import { validateBody, validateQuery } from "../middleware/validate";
-import { wibParts } from "../lib/wib";
 
 export const santriRouter = Router();
 
@@ -43,10 +51,21 @@ const mutasiSchema = z.object({
   tingkatan: z.coerce.number().int().min(1).max(6).optional(),
 });
 
+function normalizeSantriRecord(santri: typeof masterSantri.$inferSelect) {
+  return {
+    ...santri,
+    halqah: resolveSantriHalqah(santri) || "-",
+    tingkatan: normalizeTingkatan(santri.tingkatan),
+    jalur: santri.jalur?.trim() || "Reguler",
+    jenisKelamin: normalizeGender(santri.jenisKelamin),
+    statusAktif: isSantriAktif(santri.statusAktif),
+  };
+}
+
 function findSantriOr404(id: string) {
   const santri = db.select().from(masterSantri).where(eq(masterSantri.id, id)).get();
   if (!santri) throw new HttpError(404, "Santri tidak ditemukan");
-  return { ...santri, statusAktif: santri.statusAktif === "AKTIF" };
+  return normalizeSantriRecord(santri);
 }
 
 santriRouter.use(requireAuth);
@@ -58,14 +77,6 @@ santriRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
   const scopedHalqah = scopeHalqah(req.user!);
 
   const filters = [];
-  if (scopedHalqah) {
-    filters.push(eq(masterSantri.halqah, scopedHalqah));
-  } else if (halqah && halqah !== "Semua Halqah") {
-    filters.push(eq(masterSantri.halqah, halqah));
-  }
-  if (tingkatan) filters.push(eq(masterSantri.tingkatan, tingkatan));
-  if (status === "Aktif") filters.push(eq(masterSantri.statusAktif, "AKTIF"));
-  if (status === "Tidak Aktif") filters.push(eq(masterSantri.statusAktif, "NONAKTIF"));
   if (q) {
     filters.push(
       or(like(masterSantri.nama, `%${q}%`), like(masterSantri.nis, `%${q}%`))!
@@ -76,17 +87,31 @@ santriRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
     .select()
     .from(masterSantri)
     .where(filters.length ? and(...filters) : undefined)
-    .orderBy(asc(masterSantri.halqah), desc(masterSantri.id))
+    .orderBy(asc(masterSantri.nama), desc(masterSantri.id))
     .all();
 
-  const mappedRows = rows.map((r) => ({ ...r, statusAktif: r.statusAktif === "AKTIF" }));
-  res.json({ total: rows.length, data: mappedRows });
+  const mappedRows = rows
+    .map(normalizeSantriRecord)
+    .filter((row) => {
+      if (scopedHalqah) {
+        if (!matchesHalqah(row.halqah, scopedHalqah)) return false;
+      } else if (halqah && halqah !== "Semua Halqah") {
+        if (!matchesHalqah(row.halqah, halqah)) return false;
+      }
+      if (tingkatan && row.tingkatan !== tingkatan) return false;
+      if (status === "Aktif" && !row.statusAktif) return false;
+      if (status === "Tidak Aktif" && row.statusAktif) return false;
+      return true;
+    })
+    .sort((a, b) => a.halqah.localeCompare(b.halqah) || a.nama.localeCompare(b.nama));
+
+  res.json({ total: mappedRows.length, data: mappedRows });
 });
 
 santriRouter.get("/:id", (req, res) => {
   const santri = findSantriOr404(req.params.id);
   const scoped = scopeHalqah(req.user!);
-  if (scoped && santri.halqah !== scoped) {
+  if (scoped && !matchesHalqah(santri.halqah, scoped)) {
     throw new HttpError(403, "Santri berada di luar halqah Anda");
   }
 
@@ -94,9 +119,9 @@ santriRouter.get("/:id", (req, res) => {
     .select()
     .from(dataSantri)
     .where(eq(dataSantri.santriId, santri.id))
-    .orderBy(desc(dataSantri.tanggal), desc(dataSantri.id))
-    .limit(20)
-    .all();
+    .all()
+    .sort(compareDateThenCreatedDesc)
+    .slice(0, 20);
 
   res.json({ santri, riwayat });
 });
@@ -108,7 +133,7 @@ santriRouter.post(
   validateBody(createSchema),
   (req, res) => {
     const body = req.body as z.infer<typeof createSchema>;
-    const now = wibParts().timestamp;
+    const now = unixNowSec();
 
     const existing = db
       .select({ id: masterSantri.id })
@@ -119,7 +144,14 @@ santriRouter.post(
 
     const inserted = db
       .insert(masterSantri)
-      .values({ ...body, id: crypto.randomUUID(), statusAktif: "AKTIF", createdAt: now })
+      .values({
+        ...body,
+        id: crypto.randomUUID(),
+        className: body.halqah,
+        classPesantren: body.halqah,
+        statusAktif: "AKTIF",
+        createdAt: now,
+      })
       .returning()
       .get();
 
@@ -128,7 +160,7 @@ santriRouter.post(
       "santri.create",
       `Menambah santri ${body.nama} (NIS ${body.nis})`
     );
-    res.status(201).json({ santri: { ...inserted, statusAktif: inserted.statusAktif === "AKTIF" } });
+    res.status(201).json({ santri: normalizeSantriRecord(inserted) });
   }
 );
 
@@ -141,12 +173,14 @@ santriRouter.put(
     const id = req.params.id;
     const body = req.body as z.infer<typeof updateSchema>;
     const santri = findSantriOr404(id);
+    const nextHalqah = body.halqah ?? (santri.halqah === "-" ? null : santri.halqah);
 
     const updated = db
       .update(masterSantri)
       .set({
         nama: body.nama ?? santri.nama,
-        halqah: body.halqah ?? santri.halqah,
+        halqah: nextHalqah,
+        classPesantren: nextHalqah ?? santri.classPesantren,
         tingkatan: body.tingkatan ?? santri.tingkatan,
         jalur: body.jalur ?? santri.jalur,
         jenisKelamin: body.jenisKelamin ?? santri.jenisKelamin,
@@ -157,7 +191,7 @@ santriRouter.put(
       .get();
 
     writeAudit(req.user!, "santri.update", `Mengubah data ${santri.nama}`);
-    res.json({ santri: { ...updated, statusAktif: updated.statusAktif === "AKTIF" } });
+    res.json({ santri: normalizeSantriRecord(updated) });
   }
 );
 
@@ -175,6 +209,7 @@ santriRouter.patch(
       .update(masterSantri)
       .set({
         halqah: body.halqah,
+        classPesantren: body.halqah,
         tingkatan: body.tingkatan ?? santri.tingkatan,
       })
       .where(eq(masterSantri.id, id))
@@ -186,7 +221,7 @@ santriRouter.patch(
       "santri.mutasi",
       `Mutasi ${santri.nama}: ${santri.halqah} → ${body.halqah}`
     );
-    res.json({ santri: { ...updated, statusAktif: updated.statusAktif === "AKTIF" } });
+    res.json({ santri: normalizeSantriRecord(updated) });
   }
 );
 

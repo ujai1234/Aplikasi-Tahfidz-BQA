@@ -29,7 +29,13 @@ interface EvaluasiFormValues {
 }
 
 export function EvaluasiForm() {
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const today = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(
+        new Date()
+      ),
+    []
+  );
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -37,6 +43,8 @@ export function EvaluasiForm() {
   const [sesi, setSesi] = useState<Sesi>("Maghrib");
   const [statusCapaian, setStatusCapaian] =
     useState<CapaianStatus>("Tuntas");
+  const [penyebab, setPenyebab] = useState("__none__");
+  const [catatan, setCatatan] = useState("");
 
   const { data: santriData } = useQuery({
     queryKey: ["santri", "for-evaluasi"],
@@ -50,17 +58,25 @@ export function EvaluasiForm() {
       api.evaluasi.create({
         santriId: santriId,
         sesi,
+        tanggal: today,
         statusCapaian,
         penyebab:
-          statusCapaian === "Tuntas" ? null : values.penyebab || null,
-        catatan: values.catatan || null,
+          statusCapaian === "Tuntas"
+            ? null
+            : values.penyebab && values.penyebab !== "__none__"
+              ? values.penyebab
+              : null,
+        catatan: values.catatan.trim() || null,
       }),
     onSuccess: (res) => {
       toast.success(`Evaluasi ${res.evaluasi.namaSantri} berhasil disimpan`);
       queryClient.invalidateQueries({ queryKey: ["evaluasi"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["santri"] });
       setSantriId("");
       setStatusCapaian("Tuntas");
+      setPenyebab("__none__");
+      setCatatan("");
     },
     onError: (err) => toast.error(errorMessage(err)),
   });
@@ -88,10 +104,9 @@ export function EvaluasiForm() {
               toast.warning("Pilih santri terlebih dahulu");
               return;
             }
-            const f = new FormData(event.currentTarget);
             mutation.mutate({
-              penyebab: String(f.get("penyebab") ?? ""),
-              catatan: String(f.get("catatan") ?? ""),
+              penyebab,
+              catatan,
             });
           }}
         >
@@ -151,12 +166,12 @@ export function EvaluasiForm() {
             </Select>
           </Field>
           <Field label="Penyebab Kendala">
-            <Select name="penyebab" defaultValue="">
+            <Select name="penyebab" value={penyebab} onValueChange={setPenyebab}>
               <SelectTrigger id="kendala-evaluasi">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent position="popper">
-                <SelectItem value="">Tidak ada</SelectItem>
+                <SelectItem value="__none__">Tidak ada</SelectItem>
                 <SelectItem value="Hafalan terbata-bata">Hafalan terbata-bata</SelectItem>
                 <SelectItem value="Kurang fokus saat setoran">
                   Kurang fokus saat setoran
@@ -171,7 +186,7 @@ export function EvaluasiForm() {
           <Field label="Tingkatan (otomatis)">
             <Input
               readOnly
-              value={selectedSantri ? `Tingkat ${selectedSantri.tingkatan}` : "—"}
+              value={selectedSantri ? `Tingkat ${selectedSantri.tingkatan ?? 1}` : "—"}
             />
           </Field>
           <Field label="Halqah (otomatis)">
@@ -183,13 +198,24 @@ export function EvaluasiForm() {
                 id="catatan-evaluasi"
                 name="catatan"
                 rows={3}
+                value={catatan}
+                onChange={(e) => setCatatan(e.target.value)}
                 placeholder="Catatan perkembangan setoran hari ini…"
                 className="flex min-h-20 w-full rounded-xl border border-line bg-[#fbfdfc] px-3.5 py-2.5 text-[13.5px] text-ink transition-[color,box-shadow] outline-none placeholder:text-[#77877c] focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/15"
               />
             </Field>
           </div>
           <div className="flex flex-wrap justify-end gap-2.5 sm:col-span-2">
-            <Button type="reset" variant="outline" onClick={() => setSantriId("")}>
+            <Button
+              type="reset"
+              variant="outline"
+              onClick={() => {
+                setSantriId("");
+                setStatusCapaian("Tuntas");
+                setPenyebab("__none__");
+                setCatatan("");
+              }}
+            >
               Batal
             </Button>
             <Button type="submit" disabled={mutation.isPending}>

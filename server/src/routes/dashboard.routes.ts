@@ -9,40 +9,70 @@ import {
   masterSantri,
   users,
 } from "../db/schema";
-import { requireAuth } from "../middleware/auth";
+import {
+  compareDateThenCreatedDesc,
+  computeTargetJuz,
+  isSantriAktif,
+  isTasmiLulus,
+  matchesHalqah,
+  normalizeHalqahKey,
+  normalizePredikat,
+  normalizeStatusCapaian,
+  normalizeTingkatan,
+  parseEvaluasiNotes,
+  resolveSantriHalqah,
+} from "../lib/santri-utils";
+import { requireAuth, scopeHalqah } from "../middleware/auth";
 import { getSettings, resolvePresensiSession } from "../lib/settings";
-import { wibDaysAgo, wibParts } from "../lib/wib";
+import { wibParts } from "../lib/wib";
 
 export const dashboardRouter = Router();
 dashboardRouter.get("/", requireAuth, (req, res) => {
   const user = req.user!;
-  const scopedHalqah =
-    user.role === "Ustadz" || user.role === "Ustadzah" ? user.halqah : null;
+  const scopedHalqah = scopeHalqah(user);
   const settings = getSettings();
   const now = wibParts();
   const today = now.date;
 
-  const santriRows = db
+  const allMasterSantri = db
     .select()
     .from(masterSantri)
-    .where(
-      scopedHalqah
-        ? and(eq(masterSantri.statusAktif, "AKTIF"), eq(masterSantri.halqah, scopedHalqah))
-        : eq(masterSantri.statusAktif, "AKTIF")
-    )
-    .orderBy(asc(masterSantri.halqah))
-    .all();
+    .orderBy(asc(masterSantri.nama))
+    .all()
+    .map((s) => ({
+      ...s,
+      resolvedHalqah: resolveSantriHalqah(s),
+      resolvedTingkatan: normalizeTingkatan(s.tingkatan),
+      aktif: isSantriAktif(s.statusAktif),
+    }));
+
+  const allSantriMap = new Map(allMasterSantri.map((s) => [s.id, s]));
+
+  const santriRows = allMasterSantri
+    .filter((s) => {
+      if (!s.aktif) return false;
+      if (scopedHalqah && !matchesHalqah(s.resolvedHalqah, scopedHalqah)) return false;
+      return true;
+    })
+    .sort((a, b) => a.resolvedHalqah.localeCompare(b.resolvedHalqah) || a.nama.localeCompare(b.nama));
 
   const santriMap = new Map(santriRows.map((s) => [s.id, s]));
 
   const evaluasiRows = db
     .select()
     .from(dataSantri)
-    .orderBy(desc(dataSantri.tanggal), desc(dataSantri.id))
-    .all();
+    .all()
+    .sort(compareDateThenCreatedDesc);
 
-  const latestBySantri = new Map<string, typeof evaluasiRows[number]>();
-  for (const row of evaluasiRows) {
+  const scopedEvaluasiRows = scopedHalqah
+    ? evaluasiRows.filter((row) => {
+        const s = allSantriMap.get(row.santriId);
+        return s ? matchesHalqah(s.resolvedHalqah, scopedHalqah) : false;
+      })
+    : evaluasiRows;
+
+  const latestBySantri = new Map<string, (typeof evaluasiRows)[number]>();
+  for (const row of scopedEvaluasiRows) {
     if (!latestBySantri.has(row.santriId)) latestBySantri.set(row.santriId, row);
   }
 
@@ -62,21 +92,23 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
 
   for (const santri of santriRows) {
     const latest = latestBySantri.get(santri.id);
-    const status = latest?.statusCapaian;
+    if (!latest) continue;
+    const status = normalizeStatusCapaian(latest.statusCapaian);
     if (status === "Tuntas") tuntas += 1;
     else if (status === "Sedang") sedang += 1;
     else if (status === "Recovery") recovery += 1;
 
     if (status === "Recovery" || status === "Sedang") {
+      const parsed = parseEvaluasiNotes(latest.penyebab, status);
       perluPerhatian.push({
         nis: santri.nis,
         nama: santri.nama,
-        halqah: santri.halqah ?? "-",
-        tingkat: santri.tingkatan ?? 1,
+        halqah: santri.resolvedHalqah || "-",
+        tingkat: santri.resolvedTingkatan,
         status,
-        kendala: latest?.penyebab ?? "-",
-        target: `Juz ${Math.max(25, 31 - (santri.tingkatan ?? 1))}`,
-        catatan: "-",
+        kendala: parsed.penyebab ?? "-",
+        target: computeTargetJuz(santri.resolvedTingkatan),
+        catatan: parsed.catatan ?? "-",
       });
     }
   }
@@ -85,18 +117,19 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
   const tasmiRows = db
     .select()
     .from(dataTasmi)
-    .orderBy(desc(dataTasmi.tanggal), desc(dataTasmi.id))
-    .all();
+    .all()
+    .sort(compareDateThenCreatedDesc);
 
   const filteredTasmi = scopedHalqah
     ? tasmiRows.filter((t) => {
-        const santri = santriMap.get(t.santriId);
-        return santri && santri.halqah === scopedHalqah;
+        const santri = allSantriMap.get(t.santriId);
+        return santri ? matchesHalqah(santri.resolvedHalqah, scopedHalqah) : false;
       })
     : tasmiRows;
 
-  const latestTasmiBySantri = new Map<string, typeof tasmiRows[number]>();
+  const latestTasmiBySantri = new Map<string, (typeof tasmiRows)[number]>();
   for (const t of filteredTasmi) {
+    if (!santriMap.has(t.santriId)) continue;
     if (!latestTasmiBySantri.has(t.santriId)) latestTasmiBySantri.set(t.santriId, t);
   }
 
@@ -107,12 +140,13 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
   let rasibCount = 0;
 
   for (const t of latestTasmiBySantri.values()) {
-    if (t.statusKelulusan) tasmiLulus += 1;
-    
-    if (t.predikat === "Mumtaz") mumtazCount += 1;
-    else if (t.predikat === "Jayyid Jiddan") jayyidJiddanCount += 1;
-    else if (t.predikat === "Jayyid") jayyidCount += 1;
-    else if (t.predikat === "Rasib") rasibCount += 1;
+    if (isTasmiLulus(t.statusKelulusan)) tasmiLulus += 1;
+
+    const predikat = normalizePredikat(t.predikat);
+    if (predikat === "Mumtaz") mumtazCount += 1;
+    else if (predikat === "Jayyid Jiddan") jayyidJiddanCount += 1;
+    else if (predikat === "Jayyid") jayyidCount += 1;
+    else if (predikat === "Rasib") rasibCount += 1;
   }
 
   const testedCount = latestTasmiBySantri.size;
@@ -323,47 +357,169 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
     sesi: row.sesi,
     status: row.status,
     jarak: row.jarakMeter != null ? `${row.jarakMeter} m` : "—",
-    lokasiValidasi: row.lokasiValidasi ?? null,
+    lokasiValidasi: row.lokasiValidasi != null ? Boolean(row.lokasiValidasi) : null,
     isAdminOverride: Boolean(row.isAdminOverride),
     keterangan: row.keterangan ?? null,
   });
 
-  const since = wibDaysAgo(7);
-  const recentEvaluasi = evaluasiRows.filter((row) => row.tanggal >= since);
-  const halqahAgg = new Map<string, { tuntas: number; total: number }>();
-  
-  for (const row of recentEvaluasi) {
-    const santri = santriMap.get(row.santriId);
-    if (!santri || !santri.halqah) continue;
-    if (scopedHalqah && santri.halqah !== scopedHalqah) continue;
-    
-    const agg = halqahAgg.get(santri.halqah) ?? { tuntas: 0, total: 0 };
-    agg.total += 1;
-    if (row.statusCapaian === "Tuntas") agg.tuntas += 1;
-    halqahAgg.set(santri.halqah, agg);
-  }
-  
-  const capaianHalqah = [...halqahAgg.entries()]
-    .map(([name, agg]) => ({
-      name,
-      value: agg.total ? Math.round((agg.tuntas / agg.total) * 100) : 0,
-    }))
-    .sort((a, b) => b.value - a.value);
+  const halqahBuckets = new Map<
+    string,
+    {
+      name: string;
+      totalSantri: number;
+      tuntas: number;
+      sedang: number;
+      recovery: number;
+    }
+  >();
 
-  const distribusiMap = new Map<string, number>();
+  const ensureBucket = (rawHalqah: string) => {
+    const cleanName = rawHalqah.trim();
+    if (!cleanName || cleanName === "-") return null;
+    const key = normalizeHalqahKey(cleanName);
+    let bucket = halqahBuckets.get(key);
+    if (!bucket) {
+      bucket = {
+        name: cleanName,
+        totalSantri: 0,
+        tuntas: 0,
+        sedang: 0,
+        recovery: 0,
+      };
+      halqahBuckets.set(key, bucket);
+    }
+    return bucket;
+  };
+
   for (const santri of santriRows) {
-    if (!santri.halqah) continue;
-    distribusiMap.set(santri.halqah, (distribusiMap.get(santri.halqah) ?? 0) + 1);
+    const bucket = ensureBucket(santri.resolvedHalqah);
+    if (!bucket) continue;
+    bucket.totalSantri += 1;
+
+    const latest = latestBySantri.get(santri.id);
+    if (!latest) continue;
+    const status = normalizeStatusCapaian(latest.statusCapaian);
+    if (status === "Tuntas") bucket.tuntas += 1;
+    else if (status === "Sedang") bucket.sedang += 1;
+    else if (status === "Recovery") bucket.recovery += 1;
   }
-  
-  const totalSantri = santriRows.length || 1;
-  const distribusiHalqah = [...distribusiMap.entries()]
-    .map(([name, total]) => ({
-      name,
-      total,
-      percent: Math.round((total / totalSantri) * 100),
+
+  const capaianHalqah = [...halqahBuckets.values()]
+    .map((b) => {
+      const totalEvaluasi = b.tuntas + b.sedang + b.recovery;
+      return {
+        name: b.name,
+        value: totalEvaluasi > 0 ? Math.round((b.tuntas / totalEvaluasi) * 100) : 0,
+        tuntas: b.tuntas,
+        sedang: b.sedang,
+        recovery: b.recovery,
+        totalEvaluasi,
+        totalSantri: b.totalSantri,
+      };
+    })
+    .sort((a, b) => b.totalEvaluasi - a.totalEvaluasi || b.value - a.value || a.name.localeCompare(b.name));
+
+  const totalSantriForDist = santriRows.length || 1;
+  const distribusiHalqah = [...halqahBuckets.values()]
+    .map((b) => ({
+      name: b.name,
+      total: b.totalSantri,
+      percent: Math.round((b.totalSantri / totalSantriForDist) * 100),
     }))
-    .sort((a, b) => b.total - a.total);
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+
+  const evaluasiTerbaru = scopedEvaluasiRows.slice(0, 20).map((row) => {
+    const santri = allSantriMap.get(row.santriId);
+    const statusCapaian = normalizeStatusCapaian(row.statusCapaian);
+    const parsed = parseEvaluasiNotes(row.penyebab, statusCapaian);
+    return {
+      id: row.id,
+      tanggal: row.tanggal,
+      sesi: row.sesi,
+      santriId: row.santriId,
+      namaSantri: santri?.nama ?? "-",
+      halqah: (santri?.resolvedHalqah || "").trim() || "-",
+      tingkatan: santri?.resolvedTingkatan ?? 1,
+      statusCapaian,
+      penyebab: parsed.penyebab,
+      catatan: parsed.catatan,
+      createdBy: row.createdBy,
+    };
+  });
+
+  const tasmiTerbaru = filteredTasmi.slice(0, 20).map((row) => {
+    const santri = allSantriMap.get(row.santriId);
+    return {
+      id: row.id,
+      tanggal: row.tanggal,
+      santriId: row.santriId,
+      namaSantri: santri?.nama ?? "-",
+      halqah: (santri?.resolvedHalqah || "").trim() || "-",
+      tingkatan: santri?.resolvedTingkatan ?? 1,
+      jenisTasmi: row.jenisTasmi,
+      nilai: row.nilai,
+      predikat: normalizePredikat(row.predikat),
+      statusKelulusan: isTasmiLulus(row.statusKelulusan) ? "Lulus" : "Tidak Lulus",
+      penguji: row.penguji,
+    };
+  });
+
+  const ustadzForSummary = isSupervisor
+    ? ustadzAktif
+    : ustadzAktif.filter((u) => u.username === user.username);
+
+  const rekapUstadz = ustadzForSummary.map((u) => {
+    const uHalqah = resolveSantriHalqah({ halqah: u.halqah }) || "-";
+    const uNameLower = u.nama.trim().toLowerCase();
+    const mySantri = santriRows.filter((s) => matchesHalqah(s.resolvedHalqah, uHalqah));
+
+    let uTuntas = 0;
+    let uPerhatian = 0;
+    for (const s of mySantri) {
+      const latest = latestBySantri.get(s.id);
+      if (!latest) continue;
+      const st = normalizeStatusCapaian(latest.statusCapaian);
+      if (st === "Tuntas") uTuntas += 1;
+      else uPerhatian += 1;
+    }
+
+    const myEval = scopedEvaluasiRows.filter((row) => {
+      const s = allSantriMap.get(row.santriId);
+      return (
+        (s && matchesHalqah(s.resolvedHalqah, uHalqah)) ||
+        (row.createdBy ?? "").trim().toLowerCase() === uNameLower
+      );
+    });
+
+    const myTasmi = filteredTasmi.filter((row) => {
+      const s = allSantriMap.get(row.santriId);
+      return (
+        (s && matchesHalqah(s.resolvedHalqah, uHalqah)) ||
+        (row.penguji ?? "").trim().toLowerCase() === uNameLower
+      );
+    });
+
+    let terakhirInput: string | null = null;
+    for (const r of myEval) {
+      if (!terakhirInput || r.tanggal > terakhirInput) terakhirInput = r.tanggal;
+    }
+    for (const r of myTasmi) {
+      if (!terakhirInput || r.tanggal > terakhirInput) terakhirInput = r.tanggal;
+    }
+
+    return {
+      username: u.username,
+      nama: u.nama,
+      halqah: uHalqah,
+      totalSantri: mySantri.length,
+      evaluasiCount: myEval.length,
+      tuntasCount: uTuntas,
+      perluPerhatianCount: uPerhatian,
+      tasmiCount: myTasmi.length,
+      presensiBulanIni: rekapMap.get(u.username)?.totalHadir ?? 0,
+      terakhirInput,
+    };
+  });
 
   res.json({
     stats: {
@@ -388,7 +544,10 @@ dashboardRouter.get("/", requireAuth, (req, res) => {
     },
     capaianHalqah,
     distribusiHalqah,
-    santriPerluPerhatian: perluPerhatian.slice(0, 10),
+    santriPerluPerhatian: perluPerhatian.slice(0, 20),
+    evaluasiTerbaru,
+    tasmiTerbaru,
+    rekapUstadz,
     presensiHariIni: absensiToday.map(mapPresensiItem),
     presensiTerbaru: absensiRecentRows.map(mapPresensiItem),
     rekapPresensiBulanIni,

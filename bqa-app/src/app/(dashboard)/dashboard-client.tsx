@@ -6,10 +6,12 @@ import Link from "next/link";
 import {
   AlertTriangle,
   Award,
+  BookOpen,
   Calendar,
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Layers,
   Lock,
   Moon,
   Sparkles,
@@ -117,17 +119,18 @@ function PresensiRowsTable({
                     {row.jarak}
                   </span>
                 )}
-                {row.lokasiValidasi && (
-                  <span className="text-xs text-muted-foreground">
-                    ({row.lokasiValidasi})
-                  </span>
+                {row.lokasiValidasi === true && (
+                  <Badge variant="success">GPS Valid</Badge>
+                )}
+                {row.lokasiValidasi === false && !row.isAdminOverride && (
+                  <Badge variant="outline">Luar Radius</Badge>
                 )}
                 {row.keterangan && (
                   <span className="text-xs text-slate-600">{row.keterangan}</span>
                 )}
                 {!row.isAdminOverride &&
                   (!row.jarak || row.jarak === "—") &&
-                  !row.lokasiValidasi &&
+                  row.lokasiValidasi == null &&
                   !row.keterangan && <span>—</span>}
               </div>
             </TableCell>
@@ -148,6 +151,7 @@ export function DashboardClient() {
   const isSupervisor = isAdmin || isKepsek;
   const todayFormatted = useMemo(() => tanggalIndoFormat(new Date()), []);
   const [selectedPresensiTab, setSelectedPresensiTab] = useState<string | null>(null);
+  const [selectedInputTab, setSelectedInputTab] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["dashboard"],
@@ -171,7 +175,12 @@ export function DashboardClient() {
     persentaseCapaian,
     rekapPredikat,
     presensiBanner,
+    capaianHalqah = [],
+    distribusiHalqah = [],
     santriPerluPerhatian,
+    evaluasiTerbaru = [],
+    tasmiTerbaru = [],
+    rekapUstadz = [],
     presensiHariIni = [],
     presensiTerbaru = [],
     rekapPresensiBulanIni = [],
@@ -191,6 +200,17 @@ export function DashboardClient() {
           ? "rekap"
           : "hari-ini";
   const activePresensiTab = selectedPresensiTab ?? defaultPresensiTab;
+
+  const defaultInputTab =
+    evaluasiTerbaru.length > 0
+      ? "evaluasi"
+      : tasmiTerbaru.length > 0
+        ? "tasmi"
+        : rekapUstadz.length > 0
+          ? "ustadz"
+          : "evaluasi";
+  const activeInputTab = selectedInputTab ?? defaultInputTab;
+  const distMap = new Map(distribusiHalqah.map((d) => [d.name, d]));
 
   return (
     <div className="space-y-5">
@@ -542,9 +562,309 @@ export function DashboardClient() {
         <RekapTasmiChart data={rekapPredikat} />
       </div>
 
+      {/* Progres per Halqah */}
+      {capaianHalqah.length > 0 && (
+        <Card className="border-line bg-card shadow-2xs">
+          <CardHeader className="border-b border-line pb-4">
+            <div className="flex items-center gap-2">
+              <Layers className="size-4.5 text-emerald-700 shrink-0" />
+              <div>
+                <CardTitle>Capaian &amp; Sebaran Santri per Halqah</CardTitle>
+                <CardDescription>
+                  Rekap status target santri dan jumlah anggota tiap halqah
+                </CardDescription>
+              </div>
+            </div>
+            <CardAction>
+              <LinkMore href="/data-santri">Data Santri</LinkMore>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {capaianHalqah.map((item) => {
+                const dist = distMap.get(item.name);
+                const totalSantri = item.totalSantri ?? dist?.total ?? 0;
+                const totalEvaluasi = item.totalEvaluasi ?? 0;
+                const tuntas = item.tuntas ?? 0;
+                const sedang = item.sedang ?? 0;
+                const recovery = item.recovery ?? 0;
+                return (
+                  <div
+                    key={item.name}
+                    className="rounded-xl border border-line bg-slate-50/50 p-3.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[13px] font-bold text-ink truncate">
+                        {item.name}
+                      </span>
+                      <Badge variant={totalEvaluasi > 0 ? "success" : "neutral"}>
+                        {item.value}% Tuntas
+                      </Badge>
+                    </div>
+                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                      <div
+                        className="h-full rounded-full bg-emerald-600 transition-all"
+                        style={{ width: `${Math.min(100, Math.max(0, item.value))}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-[11.5px] text-muted-foreground">
+                      <span className="font-medium text-ink">
+                        {totalSantri} santri{dist ? ` (${dist.percent}%)` : ""}
+                      </span>
+                      <span className="tabular-nums">
+                        {totalEvaluasi > 0
+                          ? `${tuntas} Tuntas · ${sedang} Sedang · ${recovery} Recovery`
+                          : "Belum ada evaluasi"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Data Input Ustadz: Evaluasi, Tasmi', dan Aktivitas Halqah */}
+      <Card className="border-line bg-card shadow-2xs">
+        <CardHeader className="border-b border-line pb-4">
+          <div className="flex items-center gap-2">
+            <BookOpen className="size-4.5 text-emerald-700 shrink-0" />
+            <div>
+              <CardTitle>Data Input Ustadz (Evaluasi &amp; Ujian Tasmi&apos;)</CardTitle>
+              <CardDescription>
+                Terhubung langsung dengan evaluasi harian dan penilaian tasmi&apos; yang diinput ustadz
+              </CardDescription>
+            </div>
+          </div>
+          <CardAction>
+            <div className="flex items-center gap-3">
+              <LinkMore href="/evaluasi">Evaluasi</LinkMore>
+              <LinkMore href="/tasmi">Tasmi&apos;</LinkMore>
+            </div>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Tabs
+            value={activeInputTab}
+            onValueChange={setSelectedInputTab}
+            className="gap-0"
+          >
+            <div className="border-b border-line px-6 py-3">
+              <TabsList>
+                <TabsTrigger value="evaluasi">
+                  Evaluasi Terbaru ({evaluasiTerbaru.length})
+                </TabsTrigger>
+                <TabsTrigger value="tasmi">
+                  Ujian Tasmi&apos; ({tasmiTerbaru.length})
+                </TabsTrigger>
+                <TabsTrigger value="ustadz">
+                  {isSupervisor ? "Aktivitas Halqah & Ustadz" : "Ringkasan Halqah"} ({rekapUstadz.length})
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="evaluasi" className="mt-0">
+              {evaluasiTerbaru.length === 0 ? (
+                <div className="py-10 text-center text-sm font-medium text-muted-foreground">
+                  Belum ada data evaluasi hafalan yang diinput ustadz.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Santri / Halqah</TableHead>
+                      <TableHead>Tanggal &amp; Sesi</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Kendala &amp; Catatan</TableHead>
+                      <TableHead>Diinput Oleh</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {evaluasiTerbaru.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          <div className="font-bold text-ink">{row.namaSantri}</div>
+                          <div className="text-[11.5px] text-muted-foreground">
+                            {row.halqah} · Tingkat {row.tingkatan}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-[12.5px] tabular-nums">
+                          <span className="font-medium text-ink">
+                            {tanggalIndo(row.tanggal)}
+                          </span>{" "}
+                          <Badge variant="outline" className="ml-1">
+                            {row.sesi}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={capaianVariant[row.statusCapaian] ?? "neutral"}>
+                            {row.statusCapaian}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs text-[12.5px] text-slate-600">
+                          {row.penyebab || row.catatan ? (
+                            <div className="space-y-0.5">
+                              {row.penyebab && (
+                                <div className="font-medium text-ink">{row.penyebab}</div>
+                              )}
+                              {row.catatan && (
+                                <div className="text-xs text-muted-foreground">{row.catatan}</div>
+                              )}
+                            </div>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-[12.5px] font-medium text-slate-700">
+                          {row.createdBy || "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+
+            <TabsContent value="tasmi" className="mt-0">
+              {tasmiTerbaru.length === 0 ? (
+                <div className="py-10 text-center text-sm font-medium text-muted-foreground">
+                  Belum ada data ujian tasmi&apos; yang diinput ustadz.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Santri / Halqah</TableHead>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Jenis Ujian</TableHead>
+                      <TableHead className="text-center">Nilai</TableHead>
+                      <TableHead>Predikat</TableHead>
+                      <TableHead>Kelulusan</TableHead>
+                      <TableHead>Penguji</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tasmiTerbaru.map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell>
+                          <div className="font-bold text-ink">{row.namaSantri}</div>
+                          <div className="text-[11.5px] text-muted-foreground">
+                            {row.halqah} · Tingkat {row.tingkatan}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-[12.5px] tabular-nums font-medium text-ink">
+                          {tanggalIndo(row.tanggal)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{row.jenisTasmi}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums font-bold text-ink">
+                          {row.nilai}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              row.predikat === "Mumtaz"
+                                ? "success"
+                                : row.predikat === "Jayyid Jiddan"
+                                  ? "info"
+                                  : row.predikat === "Jayyid"
+                                    ? "warning"
+                                    : "danger"
+                            }
+                          >
+                            {row.predikat}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={row.statusKelulusan === "Lulus" ? "success" : "danger"}>
+                            {row.statusKelulusan}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-[12.5px] font-medium text-slate-700">
+                          {row.penguji || "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+
+            <TabsContent value="ustadz" className="mt-0">
+              {rekapUstadz.length === 0 ? (
+                <div className="py-10 text-center text-sm font-medium text-muted-foreground">
+                  Belum ada data aktivitas ustadz / halqah.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ustadz / Halqah</TableHead>
+                      <TableHead className="text-center">Santri</TableHead>
+                      <TableHead className="text-center">Tuntas / Perhatian</TableHead>
+                      <TableHead className="text-center">Input Eval</TableHead>
+                      <TableHead className="text-center">Input Tasmi&apos;</TableHead>
+                      <TableHead className="text-center">Presensi</TableHead>
+                      <TableHead>Input Terakhir</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rekapUstadz.map((item) => (
+                      <TableRow key={item.username}>
+                        <TableCell>
+                          <UserCell
+                            initials={initialsOf(item.nama)}
+                            name={item.nama}
+                            sub={item.halqah}
+                          />
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums font-semibold text-ink">
+                          {item.totalSantri}
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums text-[12.5px]">
+                          <span className="font-semibold text-emerald-700">
+                            {item.tuntasCount}
+                          </span>
+                          {" / "}
+                          <span className="font-semibold text-amber-700">
+                            {item.perluPerhatianCount}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums font-semibold text-ink">
+                          {item.evaluasiCount}
+                        </TableCell>
+                        <TableCell className="text-center tabular-nums font-semibold text-ink">
+                          {item.tasmiCount}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={item.presensiBulanIni > 0 ? "success" : "neutral"}>
+                            {item.presensiBulanIni}x Hadir
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-[12.5px] text-muted-foreground">
+                          {item.terakhirInput ? (
+                            <span className="font-medium text-ink">
+                              {tanggalIndo(item.terakhirInput)}
+                            </span>
+                          ) : (
+                            <span>Belum ada</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
       {/* Bottom Table: Santri Perlu Perhatian Khusus */}
       <Card className="overflow-hidden border-line bg-card shadow-2xs">
-        <div className="border-b border-line bg-slate-50/50 p-4.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-slate-50/50 p-4.5">
           <div className="flex items-center gap-2">
             <AlertTriangle className="size-4.5 text-rose-600 shrink-0" />
             <div>
@@ -552,10 +872,11 @@ export function DashboardClient() {
                 Santri Perlu Perhatian Khusus (Sedang / Recovery)
               </h2>
               <p className="text-xs text-muted-foreground">
-                Daftar santri yang belum tuntas target kurikulum
+                Daftar santri yang belum tuntas target kurikulum ({santriPerluPerhatian.length} santri)
               </p>
             </div>
           </div>
+          <LinkMore href="/evaluasi">Kelola Evaluasi</LinkMore>
         </div>
 
         <Table>

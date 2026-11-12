@@ -83,7 +83,7 @@ function MiniStat({
 }
 
 export function TasmiClient() {
-  const { user } = useAuth();
+  const { user, isKepsek } = useAuth();
   const [halqah, setHalqah] = useState("");
   const [jenis, setJenis] = useState("");
   const [kelulusan, setKelulusan] = useState("");
@@ -144,8 +144,8 @@ export function TasmiClient() {
         />
       </div>
 
-      <div className="grid items-stretch gap-5 lg:grid-cols-[1.5fr_1fr]">
-        <TasmiForm />
+      <div className={isKepsek ? "grid gap-5" : "grid items-stretch gap-5 lg:grid-cols-[1.5fr_1fr]"}>
+        {!isKepsek ? <TasmiForm /> : null}
 
         <Card className="h-full">
           <CardHeader className="border-b border-line pb-4">

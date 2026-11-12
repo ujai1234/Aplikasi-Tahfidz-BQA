@@ -28,7 +28,7 @@ export interface Santri {
 }
 
 export interface Evaluasi {
-  id: number;
+  id: string;
   tanggal: string;
   sesi: Sesi;
   santriId: string;
@@ -44,7 +44,7 @@ export interface Evaluasi {
 }
 
 export interface Absensi {
-  id: number;
+  id: string;
   tanggal: string;
   jam: string;
   username: string;
@@ -60,7 +60,7 @@ export interface Absensi {
 }
 
 export interface Tasmi {
-  id: number;
+  id: string;
   tanggal: string;
   santriId: string;
   namaSantri: string;
@@ -104,7 +104,15 @@ export interface DashboardData {
     message: string;
     sesi: Sesi | null;
   };
-  capaianHalqah: Array<{ name: string; value: number }>;
+  capaianHalqah: Array<{
+    name: string;
+    value: number;
+    tuntas?: number;
+    sedang?: number;
+    recovery?: number;
+    totalEvaluasi?: number;
+    totalSantri?: number;
+  }>;
   distribusiHalqah: Array<{ name: string; total: number; percent: number }>;
   santriPerluPerhatian: Array<{
     nis: string;
@@ -116,6 +124,44 @@ export interface DashboardData {
     target: string;
     catatan?: string;
   }>;
+  evaluasiTerbaru?: Array<{
+    id: string;
+    tanggal: string;
+    sesi: Sesi;
+    santriId: string;
+    namaSantri: string;
+    halqah: string;
+    tingkatan: number;
+    statusCapaian: CapaianStatus;
+    penyebab: string | null;
+    catatan: string | null;
+    createdBy: string;
+  }>;
+  tasmiTerbaru?: Array<{
+    id: string;
+    tanggal: string;
+    santriId: string;
+    namaSantri: string;
+    halqah: string;
+    tingkatan: number;
+    jenisTasmi: "Pekanan" | "Per 3 Bulan" | "Per 6 Bulan";
+    nilai: number;
+    predikat: string;
+    statusKelulusan: "Lulus" | "Tidak Lulus";
+    penguji: string | null;
+  }>;
+  rekapUstadz?: Array<{
+    username: string;
+    nama: string;
+    halqah: string;
+    totalSantri: number;
+    evaluasiCount: number;
+    tuntasCount: number;
+    perluPerhatianCount: number;
+    tasmiCount: number;
+    presensiBulanIni: number;
+    terakhirInput: string | null;
+  }>;
   presensiHariIni?: Array<{
     id: string;
     tanggal: string;
@@ -126,7 +172,7 @@ export interface DashboardData {
     sesi: Sesi;
     status: PresensiStatus;
     jarak: string;
-    lokasiValidasi?: string | null;
+    lokasiValidasi?: boolean | null;
     isAdminOverride?: boolean;
     keterangan?: string | null;
   }>;
@@ -140,7 +186,7 @@ export interface DashboardData {
     sesi: Sesi;
     status: PresensiStatus;
     jarak: string;
-    lokasiValidasi?: string | null;
+    lokasiValidasi?: boolean | null;
     isAdminOverride?: boolean;
     keterangan?: string | null;
   }>;
@@ -426,6 +472,7 @@ export const api = {
     create(body: {
       santriId: string;
       sesi: Sesi;
+      tanggal?: string;
       statusCapaian: CapaianStatus;
       penyebab?: string | null;
       catatan?: string | null;
@@ -435,7 +482,7 @@ export const api = {
         body: JSON.stringify(body),
       });
     },
-    remove(id: number) {
+    remove(id: string) {
       return request<{ ok: boolean }>(`/evaluasi/${id}`, { method: "DELETE" });
     },
     target(tingkatan: number) {
@@ -515,6 +562,7 @@ export const api = {
       santriId: string;
       jenisTasmi: string;
       nilai: number;
+      tanggal?: string;
       catatan?: string | null;
       penguji?: string | null;
     }) {
@@ -523,7 +571,7 @@ export const api = {
         body: JSON.stringify(body),
       });
     },
-    remove(id: number) {
+    remove(id: string) {
       return request<{ ok: boolean }>(`/tasmi/${id}`, { method: "DELETE" });
     },
   },

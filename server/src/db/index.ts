@@ -31,6 +31,7 @@ sqlite.exec(`
     nis TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     class_name TEXT NOT NULL DEFAULT '-',
+    class_pesantren TEXT,
     halqah TEXT,
     tingkatan INTEGER,
     jalur TEXT DEFAULT 'Reguler',
@@ -127,6 +128,12 @@ sqlite.exec(`
     updated_at INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS verification (
     id TEXT PRIMARY KEY,
     identifier TEXT NOT NULL,
@@ -136,6 +143,20 @@ sqlite.exec(`
     updated_at INTEGER NOT NULL
   );
 `);
+
+const studentCols = sqlite.prepare("PRAGMA table_info(students)").all() as Array<{ name: string }>;
+const studentColNames = new Set(studentCols.map((c) => c.name));
+const studentMigrations: Array<[string, string]> = [
+  ["class_pesantren", "ALTER TABLE students ADD COLUMN class_pesantren TEXT"],
+  ["halqah", "ALTER TABLE students ADD COLUMN halqah TEXT"],
+  ["tingkatan", "ALTER TABLE students ADD COLUMN tingkatan INTEGER"],
+  ["jalur", "ALTER TABLE students ADD COLUMN jalur TEXT DEFAULT 'Reguler'"],
+];
+for (const [col, alterSql] of studentMigrations) {
+  if (!studentColNames.has(col)) {
+    sqlite.exec(alterSql);
+  }
+}
 
 export const db = drizzle(sqlite, { schema });
 export { schema };

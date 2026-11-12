@@ -68,6 +68,7 @@ export function AddSantriButton() {
     onSuccess: (res) => {
       toast.success(`Santri ${res.santri.nama} berhasil ditambahkan`);
       queryClient.invalidateQueries({ queryKey: ["santri"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setOpen(false);
     },
     onError: (err) => toast.error(errorMessage(err)),
@@ -172,6 +173,7 @@ function EditSantriDialog({
     onSuccess: () => {
       toast.success(`Data ${santri.nama} berhasil diperbarui`);
       queryClient.invalidateQueries({ queryKey: ["santri"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setOpen(false);
       onSaved?.();
     },
@@ -197,8 +199,8 @@ function EditSantriDialog({
             const f = new FormData(event.currentTarget);
             mutation.mutate({
               nama: String(f.get("nama") ?? "").trim(),
-              halqah: String(f.get("halqah") ?? santri.halqah),
-              tingkatan: tingkatanValue(String(f.get("tingkatan") ?? `Tingkat ${santri.tingkatan}`)),
+              halqah: String(f.get("halqah") ?? santri.halqah ?? HALQAH_OPTIONS[0]),
+              tingkatan: tingkatanValue(String(f.get("tingkatan") ?? `Tingkat ${santri.tingkatan ?? 1}`)),
               statusAktif: f.get("statusAktif") === "Aktif",
             });
           }}
@@ -208,7 +210,7 @@ function EditSantriDialog({
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Halqah" required>
-              <Select name="halqah" defaultValue={santri.halqah}>
+              <Select name="halqah" defaultValue={santri.halqah || HALQAH_OPTIONS[0]}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -222,7 +224,7 @@ function EditSantriDialog({
               </Select>
             </Field>
             <Field label="Tingkatan" required>
-              <Select name="tingkatan" defaultValue={`Tingkat ${santri.tingkatan}`}>
+              <Select name="tingkatan" defaultValue={`Tingkat ${santri.tingkatan ?? 1}`}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -268,10 +270,13 @@ function MutasiSantriDialog({ santri }: { santri: Santri }) {
         `${res.santri.nama} dimutasi ke halqah ${res.santri.halqah}`
       );
       queryClient.invalidateQueries({ queryKey: ["santri"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       setOpen(false);
     },
     onError: (err) => toast.error(errorMessage(err)),
   });
+
+  const halqahChoices = HALQAH_OPTIONS.filter((h) => h !== santri.halqah);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -293,17 +298,19 @@ function MutasiSantriDialog({ santri }: { santri: Santri }) {
             const tingkatStr = String(f.get("tingkatan") ?? "");
             mutation.mutate({
               halqah: String(f.get("halqah") ?? ""),
-              ...(tingkatStr ? { tingkatan: tingkatanValue(tingkatStr) } : {}),
+              ...(tingkatStr && tingkatStr !== "__keep__"
+                ? { tingkatan: tingkatanValue(tingkatStr) }
+                : {}),
             });
           }}
         >
           <Field label="Halqah Tujuan" required>
-            <Select name="halqah" required defaultValue={HALQAH_OPTIONS[0]}>
+            <Select name="halqah" required defaultValue={halqahChoices[0] ?? HALQAH_OPTIONS[0]}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent position="popper">
-                {HALQAH_OPTIONS.filter((h) => h !== santri.halqah).map((halqah) => (
+                {halqahChoices.map((halqah) => (
                   <SelectItem key={halqah} value={halqah}>
                     {halqah}
                   </SelectItem>
@@ -315,12 +322,12 @@ function MutasiSantriDialog({ santri }: { santri: Santri }) {
             label="Tingkatan Baru"
             hint="Kosongkan jika tingkatan tidak berubah."
           >
-            <Select name="tingkatan" defaultValue="">
+            <Select name="tingkatan" defaultValue="__keep__">
               <SelectTrigger>
                 <SelectValue placeholder="Tetap" />
               </SelectTrigger>
               <SelectContent position="popper">
-                <SelectItem value="">Tetap (Tingkat {santri.tingkatan})</SelectItem>
+                <SelectItem value="__keep__">Tetap (Tingkat {santri.tingkatan ?? 1})</SelectItem>
                 {TINGKATAN.map((tingkat) => (
                   <SelectItem key={tingkat} value={tingkat}>
                     {tingkat}

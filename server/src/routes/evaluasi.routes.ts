@@ -1,11 +1,22 @@
 // @ts-nocheck
 import { Router } from "express";
-import { and, desc, eq, like } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db";
 import { dataSantri, masterSantri } from "../db/schema";
 import { writeAudit } from "../lib/audit";
 import { HttpError } from "../lib/errors";
+import {
+  compareDateThenCreatedDesc,
+  computeTargetJuz,
+  formatEvaluasiNotes,
+  matchesHalqah,
+  normalizeStatusCapaian,
+  normalizeTingkatan,
+  parseEvaluasiNotes,
+  resolveSantriHalqah,
+  unixNowSec,
+} from "../lib/santri-utils";
 import { requireAdmin, requireAuth, requireWrite, scopeHalqah } from "../middleware/auth";
 import { validateBody, validateQuery } from "../middleware/validate";
 import { checkEvaluasiWindow } from "../lib/settings";
@@ -40,10 +51,7 @@ evaluasiRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
   const scopedHalqah = scopeHalqah(req.user!);
 
   const filters = [];
-  if (scopedHalqah) filters.push(eq(masterSantri.halqah, scopedHalqah));
-  else if (halqah && halqah !== "Semua Halqah") filters.push(eq(masterSantri.halqah, halqah));
   if (tanggal) filters.push(eq(dataSantri.tanggal, tanggal));
-  if (status) filters.push(eq(dataSantri.statusCapaian, status));
   if (q) filters.push(like(masterSantri.nama, `%${q}%`));
 
   const rows = db
@@ -60,20 +68,49 @@ evaluasiRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
       namaSantri: masterSantri.nama,
       tingkatan: masterSantri.tingkatan,
       halqah: masterSantri.halqah,
+      classPesantren: masterSantri.classPesantren,
+      className: masterSantri.className,
       jalur: masterSantri.jalur,
     })
     .from(dataSantri)
     .innerJoin(masterSantri, eq(dataSantri.santriId, masterSantri.id))
     .where(filters.length ? and(...filters) : undefined)
-    .orderBy(desc(dataSantri.tanggal), desc(dataSantri.id))
-    .limit(limit)
     .all();
 
-  const mappedRows = rows.map(r => ({
-    ...r,
-    catatan: null,
-    targetJuz: `Juz ${Math.max(25, 31 - (r.tingkatan ?? 1))}`
-  }));
+  const mappedRows = rows
+    .map((r) => {
+      const resolvedHalqah = resolveSantriHalqah(r);
+      const normalizedStatus = normalizeStatusCapaian(r.statusCapaian);
+      const { penyebab, catatan } = parseEvaluasiNotes(r.penyebab, normalizedStatus);
+      return {
+        id: r.id,
+        tanggal: r.tanggal,
+        sesi: r.sesi,
+        santriId: r.santriId,
+        statusCapaian: normalizedStatus,
+        penyebab,
+        catatan,
+        createdBy: r.createdBy,
+        juzCompleted: r.juzCompleted,
+        createdAt: r.createdAt,
+        namaSantri: r.namaSantri,
+        tingkatan: normalizeTingkatan(r.tingkatan),
+        halqah: resolvedHalqah || "-",
+        jalur: r.jalur?.trim() || "Reguler",
+        targetJuz: computeTargetJuz(r.tingkatan),
+      };
+    })
+    .filter((r) => {
+      if (scopedHalqah) {
+        if (!matchesHalqah(r.halqah, scopedHalqah)) return false;
+      } else if (halqah && halqah !== "Semua Halqah") {
+        if (!matchesHalqah(r.halqah, halqah)) return false;
+      }
+      if (status && r.statusCapaian !== status) return false;
+      return true;
+    })
+    .sort(compareDateThenCreatedDesc)
+    .slice(0, limit);
 
   res.json({ total: mappedRows.length, data: mappedRows });
 });
@@ -88,8 +125,9 @@ evaluasiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) =>
     .get();
   if (!santri) throw new HttpError(404, "Santri tidak ditemukan");
 
+  const santriHalqah = resolveSantriHalqah(santri);
   const scoped = scopeHalqah(req.user!);
-  if (scoped && santri.halqah !== scoped) {
+  if (scoped && !matchesHalqah(santriHalqah, scoped)) {
     throw new HttpError(403, `Santri bukan anggota halqah Anda (${scoped})`);
   }
 
@@ -99,6 +137,7 @@ evaluasiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) =>
   }
 
   const now = wibParts();
+  const encodedNotes = formatEvaluasiNotes(body.penyebab, body.catatan);
   const inserted = db
     .insert(dataSantri)
     .values({
@@ -106,20 +145,30 @@ evaluasiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) =>
       sesi: body.sesi,
       santriId: santri.id,
       statusCapaian: body.statusCapaian,
-      penyebab: body.penyebab ?? null,
+      penyebab: encodedNotes,
       createdBy: req.user!.nama,
       juzCompleted: 0,
-      createdAt: now.timestamp,
+      createdAt: unixNowSec(),
     })
     .returning()
     .get();
 
+  const parsedNotes = parseEvaluasiNotes(inserted.penyebab, inserted.statusCapaian);
   writeAudit(
     req.user!,
     "evaluasi.create",
     `Evaluasi ${santri.nama} (${body.statusCapaian}, sesi ${body.sesi})`
   );
-  res.status(201).json({ evaluasi: inserted });
+  res.status(201).json({
+    evaluasi: {
+      ...inserted,
+      ...parsedNotes,
+      namaSantri: santri.nama,
+      halqah: santriHalqah || "-",
+      tingkatan: normalizeTingkatan(santri.tingkatan),
+      targetJuz: computeTargetJuz(santri.tingkatan),
+    },
+  });
 });
 
 evaluasiRouter.delete("/:id", requireWrite, ...requireAdmin, (req, res) => {

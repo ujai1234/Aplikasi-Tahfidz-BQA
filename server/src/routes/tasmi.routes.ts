@@ -1,12 +1,21 @@
 // @ts-nocheck
 import { Router } from "express";
-import { and, desc, eq, like } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db";
 import { dataTasmi, masterSantri } from "../db/schema";
 import { hitungPredikat } from "../lib/tasmi";
 import { writeAudit } from "../lib/audit";
 import { HttpError } from "../lib/errors";
+import {
+  compareDateThenCreatedDesc,
+  isTasmiLulus,
+  matchesHalqah,
+  normalizePredikat,
+  normalizeTingkatan,
+  resolveSantriHalqah,
+  unixNowSec,
+} from "../lib/santri-utils";
 import { requireAdmin, requireAuth, requireWrite, scopeHalqah } from "../middleware/auth";
 import { validateBody, validateQuery } from "../middleware/validate";
 import { wibParts } from "../lib/wib";
@@ -60,15 +69,13 @@ tasmiRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
   const scopedHalqah = scopeHalqah(req.user!);
 
   const filters = [];
-  if (scopedHalqah) filters.push(eq(masterSantri.halqah, scopedHalqah));
-  else if (halqah && halqah !== "Semua Halqah") filters.push(eq(masterSantri.halqah, halqah));
   if (jenis) filters.push(eq(dataTasmi.jenisTasmi, jenis));
-  
+
   if (kelulusan) {
     const isPassed = kelulusan === "Lulus";
     filters.push(eq(dataTasmi.statusKelulusan, isPassed));
   }
-  
+
   if (q) filters.push(like(masterSantri.nama, `%${q}%`));
 
   const rows = db
@@ -85,20 +92,41 @@ tasmiRouter.get("/", validateQuery(listQuerySchema), (req, res) => {
       namaSantri: masterSantri.nama,
       tingkatan: masterSantri.tingkatan,
       halqah: masterSantri.halqah,
+      classPesantren: masterSantri.classPesantren,
+      className: masterSantri.className,
     })
     .from(dataTasmi)
     .innerJoin(masterSantri, eq(dataTasmi.santriId, masterSantri.id))
     .where(filters.length ? and(...filters) : undefined)
-    .orderBy(desc(dataTasmi.tanggal), desc(dataTasmi.id))
-    .limit(limit)
     .all();
 
-  const mappedRows = rows.map(r => ({
-    ...r,
-    statusKelulusan: r.statusKelulusan ? "Lulus" : "Tidak Lulus",
-    catatan: null,
-    createdBy: r.penguji
-  }));
+  const mappedRows = rows
+    .map((r) => ({
+      id: r.id,
+      tanggal: r.tanggal,
+      santriId: r.santriId,
+      jenisTasmi: r.jenisTasmi,
+      nilai: r.nilai,
+      predikat: normalizePredikat(r.predikat),
+      statusKelulusan: isTasmiLulus(r.statusKelulusan) ? "Lulus" : "Tidak Lulus",
+      penguji: r.penguji,
+      createdAt: r.createdAt,
+      namaSantri: r.namaSantri,
+      tingkatan: normalizeTingkatan(r.tingkatan),
+      halqah: resolveSantriHalqah(r) || "-",
+      catatan: null,
+      createdBy: r.penguji,
+    }))
+    .filter((r) => {
+      if (scopedHalqah) {
+        if (!matchesHalqah(r.halqah, scopedHalqah)) return false;
+      } else if (halqah && halqah !== "Semua Halqah") {
+        if (!matchesHalqah(r.halqah, halqah)) return false;
+      }
+      return true;
+    })
+    .sort(compareDateThenCreatedDesc)
+    .slice(0, limit);
 
   const lulus = mappedRows.filter((r) => r.statusKelulusan === "Lulus").length;
   const rataRata = mappedRows.length
@@ -129,13 +157,15 @@ tasmiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) => {
     .get();
   if (!santri) throw new HttpError(404, "Santri tidak ditemukan");
 
+  const santriHalqah = resolveSantriHalqah(santri);
   const scoped = scopeHalqah(req.user!);
-  if (scoped && santri.halqah !== scoped) {
+  if (scoped && !matchesHalqah(santriHalqah, scoped)) {
     throw new HttpError(403, `Santri bukan anggota halqah Anda (${scoped})`);
   }
 
   const { predikat, lulus } = hitungPredikat(body.nilai);
   const now = wibParts();
+  const pengujiName = body.penguji?.trim() || req.user!.nama;
 
   const inserted = db
     .insert(dataTasmi)
@@ -146,8 +176,8 @@ tasmiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) => {
       nilai: body.nilai,
       predikat,
       statusKelulusan: lulus,
-      penguji: body.penguji ?? req.user!.nama,
-      createdAt: now.timestamp,
+      penguji: pengujiName,
+      createdAt: unixNowSec(),
     })
     .returning()
     .get();
@@ -157,7 +187,16 @@ tasmiRouter.post("/", requireWrite, validateBody(createSchema), (req, res) => {
     "tasmi.create",
     `Nilai tasmi' ${santri.nama}: ${body.nilai} (${predikat})`
   );
-  res.status(201).json({ tasmi: inserted });
+  res.status(201).json({
+    tasmi: {
+      ...inserted,
+      namaSantri: santri.nama,
+      halqah: santriHalqah || "-",
+      tingkatan: normalizeTingkatan(santri.tingkatan),
+      statusKelulusan: lulus ? "Lulus" : "Tidak Lulus",
+      createdBy: inserted.penguji,
+    },
+  });
 });
 
 tasmiRouter.delete("/:id", requireWrite, ...requireAdmin, (req, res) => {

@@ -48,7 +48,13 @@ const JENIS_MAP: Record<string, string> = {
 
 export function TasmiForm() {
   const { user } = useAuth();
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const today = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(
+        new Date()
+      ),
+    []
+  );
   const queryClient = useQueryClient();
   const [nilai, setNilai] = useState(88);
   const [santriId, setSantriId] = useState("");
@@ -83,6 +89,7 @@ export function TasmiForm() {
         santriId: santriId,
         jenisTasmi: values.jenisTasmi,
         nilai,
+        tanggal: today,
         penguji: values.penguji || null,
         catatan: values.catatan || null,
       }),
@@ -92,6 +99,7 @@ export function TasmiForm() {
       );
       queryClient.invalidateQueries({ queryKey: ["tasmi"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["santri"] });
       setSantriId("");
       setNilai(88);
     },
