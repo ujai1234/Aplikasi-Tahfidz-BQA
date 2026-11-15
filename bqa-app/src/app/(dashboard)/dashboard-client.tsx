@@ -11,9 +11,11 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Filter,
   Layers,
   Lock,
   Moon,
+  RotateCcw,
   Sparkles,
   Sun,
   Unlock,
@@ -29,6 +31,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LinkMore } from "@/components/ui/link-more";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserCell } from "@/components/ui/user-cell";
@@ -42,10 +53,30 @@ import {
 } from "@/components/ui/table";
 import { PersentaseTargetChart } from "@/components/dashboard/persentase-target-chart";
 import { RekapTasmiChart } from "@/components/dashboard/rekap-tasmi-chart";
-import { api, type DashboardData } from "@/lib/api";
+import { api, type DashboardData, type DashboardFilterQuery } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
+import { HALQAH_OPTIONS } from "@/app/(dashboard)/data-santri/santri-dialogs";
 import { capaianVariant, initialsOf, presensiVariant } from "@/lib/utils";
 import { tanggalIndo } from "@/lib/user-utils";
+
+type FilterMode = "all" | "today" | "date" | "month" | "year";
+
+const NAMA_BULAN_LIST = [
+  { value: 1, label: "Januari" },
+  { value: 2, label: "Februari" },
+  { value: 3, label: "Maret" },
+  { value: 4, label: "April" },
+  { value: 5, label: "Mei" },
+  { value: 6, label: "Juni" },
+  { value: 7, label: "Juli" },
+  { value: 8, label: "Agustus" },
+  { value: 9, label: "September" },
+  { value: 10, label: "Oktober" },
+  { value: 11, label: "November" },
+  { value: 12, label: "Desember" },
+];
+
+const TAHUN_OPTIONS = [2024, 2025, 2026, 2027];
 
 function tanggalIndoFormat(date: Date): string {
   return date.toLocaleDateString("id-ID", {
@@ -153,93 +184,149 @@ export function DashboardClient() {
   const [selectedPresensiTab, setSelectedPresensiTab] = useState<string | null>(null);
   const [selectedInputTab, setSelectedInputTab] = useState<string | null>(null);
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: () => api.dashboard(),
-  });
+    // Filter States
+    const now = useMemo(() => new Date(), []);
+    const todayIso = useMemo(() => {
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }, [now]);
+    const defaultYear = now.getFullYear();
+    const defaultMonth = now.getMonth() + 1;
 
-  if (isLoading || !data) {
-    return (
-      <div className="grid min-h-[50vh] place-items-center">
-        <p className="animate-pulse text-sm font-semibold text-muted-foreground">
-          Memuat data Dashboard Overview…
-        </p>
-      </div>
-    );
-  }
+    const [mode, setMode] = useState<FilterMode>("all");
+    const [filterDate, setFilterDate] = useState<string>(todayIso);
+    const [filterMonth, setFilterMonth] = useState<number>(defaultMonth);
+    const [filterYear, setFilterYear] = useState<number>(defaultYear);
+    const [filterHalqah, setFilterHalqah] = useState<string>("Semua Halqah");
 
-  if (isError) return null;
+    const dashboardQuery = useMemo(() => {
+      const q: DashboardFilterQuery = { mode };
 
-  const {
-    stats,
-    persentaseCapaian,
-    rekapPredikat,
-    presensiBanner,
-    capaianHalqah = [],
-    distribusiHalqah = [],
-    santriPerluPerhatian,
-    evaluasiTerbaru = [],
-    tasmiTerbaru = [],
-    rekapUstadz = [],
-    presensiHariIni = [],
-    presensiTerbaru = [],
-    rekapPresensiBulanIni = [],
-    bulanIniLabel = "Bulan Ini",
-    sesi,
-  } = data;
-  const isPresensiOpen = presensiBanner?.open ?? false;
-  const hasBulanIniActivity = rekapPresensiBulanIni.some(
-    (item) => item.totalHadir > 0 || item.izin > 0 || item.sakit > 0
-  );
-  const defaultPresensiTab =
-    presensiHariIni.length > 0
-      ? "hari-ini"
-      : presensiTerbaru.length > 0
-        ? "terbaru"
-        : hasBulanIniActivity
-          ? "rekap"
-          : "hari-ini";
-  const activePresensiTab = selectedPresensiTab ?? defaultPresensiTab;
+      if (mode === "date") {
+        q.tanggal = filterDate;
+      } else if (mode === "month") {
+        q.bulan = filterMonth;
+        q.tahun = filterYear;
+      } else if (mode === "year") {
+        q.tahun = filterYear;
+      }
 
-  const defaultInputTab =
-    evaluasiTerbaru.length > 0
-      ? "evaluasi"
-      : tasmiTerbaru.length > 0
-        ? "tasmi"
-        : rekapUstadz.length > 0
-          ? "ustadz"
-          : "evaluasi";
-  const activeInputTab = selectedInputTab ?? defaultInputTab;
-  const distMap = new Map(distribusiHalqah.map((d) => [d.name, d]));
+      if (isSupervisor && filterHalqah && filterHalqah !== "Semua Halqah") {
+        q.halqah = filterHalqah;
+      }
 
-  return (
-    <div className="space-y-5">
-      {/* Top Header Row */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
-            Dashboard Overview
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {user?.nama ? `Assalamu'alaikum, ${user.nama}` : "Monitoring & Evaluasi Tahfidz"}
-            {user?.halqah ? ` · ${user.halqah}` : ""}
+      return q;
+    }, [mode, filterDate, filterMonth, filterYear, isSupervisor, filterHalqah]);
+
+    const { data, isLoading, isError, isFetching } = useQuery({
+      queryKey: ["dashboard", dashboardQuery],
+      queryFn: () => api.dashboard(dashboardQuery),
+    });
+
+    const isCustomFilter =
+      mode !== "all" || (isSupervisor && filterHalqah !== "Semua Halqah");
+
+    const resetFilter = () => {
+      setMode("all");
+      setFilterHalqah("Semua Halqah");
+      setFilterDate(todayIso);
+      setFilterMonth(defaultMonth);
+      setFilterYear(defaultYear);
+    };
+
+    if(isLoading || !data) {
+      return (
+        <div className="grid min-h-[50vh] place-items-center">
+          <p className="animate-pulse text-sm font-semibold text-muted-foreground">
+            Memuat data Dashboard Overview…
           </p>
         </div>
+      );
+}
 
-        {/* Date Chip */}
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3.5 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs">
-          <Calendar className="size-3.5 text-emerald-600" />
-          <span>{todayFormatted}</span>
+if (isError) return null;
+
+const {
+  stats,
+  persentaseCapaian = [],
+  rekapPredikat,
+  presensiBanner,
+  capaianHalqah = [],
+  distribusiHalqah = [],
+  santriPerluPerhatian,
+  evaluasiTerbaru = [],
+  tasmiTerbaru = [],
+  rekapUstadz = [],
+  presensiHariIni = [],
+  presensiTerbaru = [],
+  rekapPresensiBulanIni = [],
+  bulanIniLabel = "Bulan Ini",
+  sesi,
+} = data;
+const isPresensiOpen = presensiBanner?.open ?? false;
+const hasBulanIniActivity = rekapPresensiBulanIni.some(
+  (item) => item.totalHadir > 0 || item.izin > 0 || item.sakit > 0
+);
+const defaultPresensiTab =
+  presensiHariIni.length > 0
+    ? "hari-ini"
+    : presensiTerbaru.length > 0
+      ? "terbaru"
+      : hasBulanIniActivity
+        ? "rekap"
+        : "hari-ini";
+const activePresensiTab = selectedPresensiTab ?? defaultPresensiTab;
+
+const defaultInputTab =
+  evaluasiTerbaru.length > 0
+    ? "evaluasi"
+    : tasmiTerbaru.length > 0
+      ? "tasmi"
+      : rekapUstadz.length > 0
+        ? "ustadz"
+        : "evaluasi";
+const activeInputTab = selectedInputTab ?? defaultInputTab;
+const distMap = new Map(distribusiHalqah.map((d) => [d.name, d]));
+
+return (
+  <div className="space-y-5">
+    {/* Top Header Row */}
+    <div className="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h1 className="font-display text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">
+          Dashboard Overview
+        </h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {user?.nama ? `Assalamu'alaikum, ${user.nama}` : "Monitoring & Evaluasi Tahfidz"}
+          {user?.halqah ? ` · ${user.halqah}` : ""}
+        </p>
+      </div>
+
+        {/* Date & Period Indicator */}
+        <div className="flex flex-wrap items-center gap-2">
+          {isCustomFilter && (
+            <Badge
+              variant="outline"
+              className="border-emerald-300 bg-emerald-50 text-emerald-800 font-semibold px-2.5 py-1 text-xs"
+            >
+              Filter: {data.filterInfo?.label || mode}
+            </Badge>
+          )}
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3.5 py-1.5 text-xs font-bold text-emerald-800 shadow-2xs">
+            <Calendar className="size-3.5 text-emerald-600" />
+            <span>{todayFormatted}</span>
+          </div>
         </div>
       </div>
 
       {/* Presensi Status Alert Banner */}
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 shadow-2xs transition-all ${
-          isPresensiOpen
+        className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 shadow-2xs transition-all ${isPresensiOpen
             ? "border-emerald-200 bg-emerald-50/70 text-emerald-900"
             : "border-rose-200 bg-rose-50/80 text-rose-900"
-        }`}
+          }`}
       >
         <div className="flex items-center gap-2.5">
           {isPresensiOpen ? (
@@ -254,11 +341,10 @@ export function DashboardClient() {
 
         <Link
           href="/absensi"
-          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs ${
-            isPresensiOpen
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs ${isPresensiOpen
               ? "bg-emerald-600 text-white hover:bg-emerald-700"
               : "bg-rose-200/90 text-rose-800 hover:bg-rose-300"
-          }`}
+            }`}
         >
           {isPresensiOpen ? (
             <>
@@ -274,6 +360,265 @@ export function DashboardClient() {
         </Link>
       </div>
 
+      {/* Filter Bar: Tanggal, Bulan, Tahun, dan Halqah */}
+      <Card className="border-line bg-card shadow-2xs overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-slate-50/70 px-4.5 py-3">
+          <div className="flex items-center gap-2">
+            <div className="grid size-7 place-items-center rounded-lg bg-emerald-100 text-emerald-700">
+              <Filter className="size-4" />
+            </div>
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-wider text-ink">
+                Filter Periode &amp; Data Santri
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Sesuaikan tanggal, bulan, tahun, atau halqah untuk melihat capaian target
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isCustomFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilter}
+                className="h-8 gap-1.5 text-xs font-semibold text-slate-600 hover:text-ink"
+              >
+                <RotateCcw className="size-3.5" />
+                <span>Reset ke Semua Waktu</span>
+              </Button>
+            )}
+            <Badge
+              variant={mode === "all" ? "neutral" : "success"}
+              className="px-2.5 py-0.5 text-[11px] font-bold"
+            >
+              {data.filterInfo?.label ?? "Semua Waktu"}
+            </Badge>
+          </div>
+        </div>
+
+        <CardContent className="p-4 sm:p-4.5 space-y-3.5">
+          {/* Mode Switcher Buttons */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11.5px] font-bold text-slate-500 mr-1 shrink-0">
+              Periode:
+            </span>
+            <button
+              type="button"
+              onClick={() => setMode("all")}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${mode === "all"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
+                }`}
+            >
+              Semua Waktu
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("today")}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${mode === "today"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
+                }`}
+            >
+              Hari Ini
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("date")}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${mode === "date"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
+                }`}
+            >
+              Per Tanggal
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("month")}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${mode === "month"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
+                }`}
+            >
+              Per Bulan
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("year")}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${mode === "year"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200/80"
+                }`}
+            >
+              Per Tahun
+            </button>
+          </div>
+
+          {/* Conditional Input Controls Row */}
+          {(mode === "date" || mode === "month" || mode === "year" || isSupervisor) && (
+            <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-line/60">
+              {/* Date Input */}
+              {mode === "date" && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-slate-600 shrink-0">
+                    Pilih Tanggal:
+                  </label>
+                  <Input
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="h-9 w-auto bg-surface text-xs font-semibold"
+                  />
+                </div>
+              )}
+
+              {/* Month & Year Selects */}
+              {mode === "month" && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-600 shrink-0">
+                      Bulan:
+                    </label>
+                    <Select
+                      value={String(filterMonth)}
+                      onValueChange={(val) => setFilterMonth(Number(val))}
+                    >
+                      <SelectTrigger className="h-9 w-36 text-xs font-semibold bg-surface">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {NAMA_BULAN_LIST.map((m) => (
+                          <SelectItem key={m.value} value={String(m.value)}>
+                            {m.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-bold text-slate-600 shrink-0">
+                      Tahun:
+                    </label>
+                    <Select
+                      value={String(filterYear)}
+                      onValueChange={(val) => setFilterYear(Number(val))}
+                    >
+                      <SelectTrigger className="h-9 w-28 text-xs font-semibold bg-surface">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TAHUN_OPTIONS.map((y) => (
+                          <SelectItem key={y} value={String(y)}>
+                            {y}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+
+              {/* Year Select (Mode Year) */}
+              {mode === "year" && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-slate-600 shrink-0">
+                    Pilih Tahun:
+                  </label>
+                  <Select
+                    value={String(filterYear)}
+                    onValueChange={(val) => setFilterYear(Number(val))}
+                  >
+                    <SelectTrigger className="h-9 w-28 text-xs font-semibold bg-surface">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TAHUN_OPTIONS.map((y) => (
+                        <SelectItem key={y} value={String(y)}>
+                          {y}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Supervisor Halqah Select */}
+              {isSupervisor && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <label className="text-xs font-bold text-slate-600 shrink-0">
+                    Halqah:
+                  </label>
+                  <Select
+                    value={filterHalqah}
+                    onValueChange={setFilterHalqah}
+                  >
+                    <SelectTrigger className="h-9 min-w-44 text-xs font-semibold bg-surface">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Semua Halqah">Semua Halqah</SelectItem>
+                      {HALQAH_OPTIONS.map((hq) => (
+                        <SelectItem key={hq} value={hq}>
+                          {hq}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Period Summary Footnote */}
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3.5 py-2 text-xs text-slate-600 border border-slate-100">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-ink">
+                Periode Aktif:
+              </span>
+              <span>{data.filterInfo?.label}</span>
+              {isFetching && (
+                <span className="text-[11px] font-bold text-emerald-600 animate-pulse">
+                  (Memperbarui…)
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 font-medium tabular-nums text-[11.5px]">
+              <span>
+                <strong>{data.filterInfo?.totalEvaluasiPeriode ?? 0}</strong> evaluasi tercatat
+              </span>
+              <span>·</span>
+              <span>
+                <strong>{data.filterInfo?.totalTasmiPeriode ?? 0}</strong> ujian tasmi&apos;
+              </span>
+            </div>
+          </div>
+
+          {/* Helpful callout if selected period has 0 evaluations */}
+          {mode !== "all" && (data.filterInfo?.totalEvaluasiPeriode ?? 0) === 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="size-4 text-amber-600 shrink-0" />
+                <p>
+                  Belum ada evaluasi santri yang tercatat untuk <strong>{data.filterInfo?.label}</strong>.
+                  Data di bawah menampilkan angka 0 untuk periode ini.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMode("all")}
+                className="h-7 text-xs font-bold border-amber-300 text-amber-800 hover:bg-amber-100"
+              >
+                Tampilkan Semua Waktu (Akumulatif)
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* 5 Metric Summary Cards */}
       <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
         {/* Total Santri */}
@@ -285,6 +630,9 @@ export function DashboardClient() {
               </p>
               <p className="font-display text-2xl font-black text-ink">
                 {stats.totalSantri}
+              </p>
+              <p className="text-[11px] font-medium text-muted-foreground truncate">
+                {user?.halqah ? user.halqah : (isSupervisor && filterHalqah !== "Semua Halqah" ? filterHalqah : "Seluruh Halqah")}
               </p>
             </div>
             <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-600">
@@ -303,6 +651,9 @@ export function DashboardClient() {
               <p className="font-display text-2xl font-black text-emerald-600">
                 {stats.tuntas}
               </p>
+              <p className="text-[11px] font-medium text-emerald-700">
+                {persentaseCapaian?.[0]?.percent ?? 0}% dari capaian
+              </p>
             </div>
             <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
               <CheckCircle2 className="size-5" />
@@ -319,6 +670,9 @@ export function DashboardClient() {
               </p>
               <p className="font-display text-2xl font-black text-amber-600">
                 {stats.sedang}
+              </p>
+              <p className="text-[11px] font-medium text-amber-700">
+                {persentaseCapaian?.[1]?.percent ?? 0}% dari capaian
               </p>
             </div>
             <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-700">
@@ -337,6 +691,9 @@ export function DashboardClient() {
               <p className="font-display text-2xl font-black text-rose-600">
                 {stats.recovery}
               </p>
+              <p className="text-[11px] font-medium text-rose-700">
+                {persentaseCapaian?.[2]?.percent ?? 0}% dari capaian
+              </p>
             </div>
             <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-rose-100 text-rose-700">
               <AlertTriangle className="size-5" />
@@ -353,6 +710,11 @@ export function DashboardClient() {
               </p>
               <p className="font-display text-2xl font-black text-blue-600">
                 {stats.lulusTasmiPercent}%
+              </p>
+              <p className="text-[11px] font-medium text-blue-700 truncate">
+                {(stats.testedTasmiCount ?? 0) > 0
+                  ? `${stats.tasmiLulus ?? 0} dari ${stats.testedTasmiCount} santri diuji`
+                  : "Belum ada ujian"}
               </p>
             </div>
             <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-blue-100 text-blue-700">
@@ -923,5 +1285,5 @@ export function DashboardClient() {
         </Table>
       </Card>
     </div>
-  );
+    );
 }

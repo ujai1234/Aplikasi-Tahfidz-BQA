@@ -75,7 +75,28 @@ export interface Tasmi {
   createdBy: string;
 }
 
+export interface DashboardFilterQuery {
+  [key: string]: string | number | undefined;
+  mode?: "all" | "today" | "date" | "month" | "year";
+  tanggal?: string;
+  bulan?: number;
+  tahun?: number;
+  halqah?: string;
+}
+
+export interface DashboardFilterInfo {
+  mode: "all" | "today" | "date" | "month" | "year";
+  tanggal: string | null;
+  bulan: number | null;
+  tahun: number | null;
+  halqah: string | null;
+  label: string;
+  totalEvaluasiPeriode: number;
+  totalTasmiPeriode: number;
+}
+
 export interface DashboardData {
+  filterInfo?: DashboardFilterInfo;
   stats: {
     totalSantri: number;
     tuntas: number;
@@ -249,14 +270,14 @@ export const SESSION_DURATION_MS = 5 * 60 * 1000; // 5 minutes in ms
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  
+
   // Check if session has exceeded 5 minutes
   const sessionStart = localStorage.getItem(SESSION_START_KEY);
   if (sessionStart && Date.now() - Number(sessionStart) > SESSION_DURATION_MS) {
     clearToken();
     return null;
   }
-  
+
   return localStorage.getItem(TOKEN_KEY);
 }
 
@@ -593,52 +614,52 @@ export const api = {
     },
   },
 
-  dashboard() {
-    return request<DashboardData>("/dashboard");
-  },
+    dashboard(query ?: DashboardFilterQuery) {
+      return request<DashboardData>(`/dashboard${qs(query || {})}`);
+    },
 
-  backup: {
-    logs() {
-      return request<{
-        total: number;
-        data: Array<{
-          id: number;
-          username: string;
-          action: string;
-          detail: string | null;
-          createdAt: string;
-        }>;
-      }>("/backup/logs");
+    backup: {
+      logs() {
+        return request<{
+          total: number;
+          data: Array<{
+            id: number;
+            username: string;
+            action: string;
+            detail: string | null;
+            createdAt: string;
+          }>;
+        }>("/backup/logs");
+      },
+      reset(konfirmasi: string) {
+        return request<{ ok: boolean; dihapus: Record<string, number> }>(
+          "/backup/reset",
+          { method: "POST", body: JSON.stringify({ konfirmasi }) }
+        );
+      },
+      downloadJson() {
+        return fetch(`${API_URL}/backup/backup`, {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        }).then(async (res) => {
+          if (!res.ok) throw new ApiError("Backup gagal", res.status);
+          return res.blob();
+        });
+      },
     },
-    reset(konfirmasi: string) {
-      return request<{ ok: boolean; dihapus: Record<string, number> }>(
-        "/backup/reset",
-        { method: "POST", body: JSON.stringify({ konfirmasi }) }
-      );
-    },
-    downloadJson() {
-      return fetch(`${API_URL}/backup/backup`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      }).then(async (res) => {
-        if (!res.ok) throw new ApiError("Backup gagal", res.status);
-        return res.blob();
-      });
-    },
-  },
-};
+  };
 
-export function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
-  
-  if (err instanceof TypeError && err.message === "Failed to fetch") {
+  export function errorMessage(err: unknown): string {
+    if (err instanceof ApiError) return err.message;
+
+if (err instanceof TypeError && err.message === "Failed to fetch") {
+  return "Gagal terhubung ke server. Pastikan Backend API sedang berjalan.";
+}
+
+if (err instanceof Error) {
+  if (err.message.includes("fetch")) {
     return "Gagal terhubung ke server. Pastikan Backend API sedang berjalan.";
   }
-
-  if (err instanceof Error) {
-    if (err.message.includes("fetch")) {
-       return "Gagal terhubung ke server. Pastikan Backend API sedang berjalan.";
-    }
-    return err.message || "Terjadi kesalahan yang tidak diketahui";
-  }
-  return "Terjadi kesalahan yang tidak diketahui";
+  return err.message || "Terjadi kesalahan yang tidak diketahui";
+}
+return "Terjadi kesalahan yang tidak diketahui";
 }
